@@ -2,7 +2,7 @@ name: HDK FPGA Build
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   workflow_dispatch:
     inputs:
       run_vivado:
