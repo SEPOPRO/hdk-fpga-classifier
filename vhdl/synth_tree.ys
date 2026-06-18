@@ -1,0 +1,6 @@
+# synth_tree.ys — Synthesize parallel POPCOUNT tree for LUT estimation
+read_verilog popcount_tree_parallel.v
+synth -top popcount_tree_parallel
+abc -lut 6
+tee -o hdk_tree_synth.rpt stat -tech
+exit
