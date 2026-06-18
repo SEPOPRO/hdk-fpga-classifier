@@ -1,0 +1,8 @@
+create_clock -period 10.000 -name clk_100MHz [get_ports clk]
+set_input_delay -clock clk_100MHz -max 4.000 [get_ports uart_rx]
+set_input_delay -clock clk_100MHz -min 2.000 [get_ports uart_rx]
+set_output_delay -clock clk_100MHz -max 6.000 [get_ports uart_tx]
+set_output_delay -clock clk_100MHz -min 2.000 [get_ports uart_tx]
+set_output_delay -clock clk_100MHz -max 8.000 [get_ports {led_*}]
+set_output_delay -clock clk_100MHz -min 1.000 [get_ports {led_*}]
+set_false_path -rise_from [get_ports rst_n]

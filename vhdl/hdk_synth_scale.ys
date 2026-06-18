@@ -1,0 +1,10 @@
+# hdk_synth_scale.ys — Synthesize at WIDTH=200, then scale to 20K
+read_verilog hd_kernel_synth_small.v
+synth -top hdk_classifier_top
+abc -lut 6
+tee -o hdk_synth_200.rpt stat -tech
+
+# Now try at WIDTH=500
+hierarchy -chparam WIDTH 500
+tee -o hdk_synth_500.rpt stat -tech
+exit

@@ -1,0 +1,21 @@
+# Ignore OSS CAD Suite (downloaded separately)
+tools/
+oss-cad-suite/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Vivado generated files
+*.rpt
+*.log
+*.bit
+vivado_project/
+
+# OS
+.DS_Store
+Thumbs.db
+*.zip
+*.zip
+*.zip
+tools/

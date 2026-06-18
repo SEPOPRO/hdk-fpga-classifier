@@ -1,0 +1,77 @@
+name: HDK FPGA Build
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  # Job 1: Open-source synthesis (Yosys) - always works
+  yosys-synth:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install OSS CAD Suite
+      run: |
+        wget -q https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2024-12-01/oss-cad-suite-linux-x64-20241201.tgz
+        tar -xzf oss-cad-suite-linux-x64-20241201.tgz
+        echo "$PWD/oss-cad-suite/bin" >> $GITHUB_PATH
+    
+    - name: Run Yosys synthesis
+      run: |
+        cd vhdl
+        yosys -s hdk_synth_fast.ys 2>&1 | tee yosys_report.txt
+        echo ""
+        echo "=== RESOURCE SUMMARY ==="
+        grep -A5 "printing statistics" yosys_report.txt | head -20
+    
+    - name: Upload Yosys report
+      uses: actions/upload-artifact@v4
+      with:
+        name: yosys-report
+        path: vhdl/yosys_report.txt
+
+  # Job 2: Vivado (requires accepting AMD EULA)
+  vivado-build:
+    runs-on: ubuntu-latest
+    # Only run if user has set VIVADO_ENABLED secret
+    if: ${{ secrets.VIVADO_ENABLED == 'true' }}
+    
+    container:
+      image: ghcr.io/teros-technology/vivado:2024.2
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Run Vivado build
+      run: |
+        cd vivado_project_ready
+        vivado -mode batch -source build_hdk.tcl 2>&1 | tee vivado_build.log
+    
+    - name: Parse results
+      run: |
+        echo "=== UTILIZATION ==="
+        grep -A30 "Slice LUTs" vivado_project_ready/hdk_impl_utilization.rpt | head -35
+        echo ""
+        echo "=== TIMING ==="
+        grep -A10 "Design Timing Summary" vivado_project_ready/hdk_impl_timing.rpt | head -15
+        echo ""
+        echo "=== POWER ==="
+        cat vivado_project_ready/hdk_power.rpt | grep -E "Total On-Chip Power|Junction Temperature|Thermal Margin" | head -5
+    
+    - name: Upload Vivado reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: vivado-reports
+        path: |
+          vivado_project_ready/hdk_impl_utilization.rpt
+          vivado_project_ready/hdk_impl_timing.rpt
+          vivado_project_ready/hdk_power.rpt
+          vivado_project_ready/vivado_build.log
+    
+    - name: Upload bitstream
+      uses: actions/upload-artifact@v4
+      with:
+        name: hdk-bitstream
+        path: vivado_project_ready/*.bit

@@ -1,0 +1,24 @@
+# hdk_synth.ys — Yosys synthesis for HDK kernel (Artix-7 resource estimation)
+# 
+# Run: yosys -s hdk_synth.ys
+
+# Read Verilog source
+read_verilog hd_kernel_synth.v
+
+# Show what we read
+ls
+
+# Synthesize to generic gate-level
+synth -top hdk_classifier_top
+
+# Map to Xilinx Artix-7 LUT primitives
+abc -lut 6
+
+# Show resource usage
+tee -o hdk_yosys_report.rpt stat -width -tech
+
+# Write synthesized netlist (for inspection)
+write_verilog hdk_synth_netlist.v
+
+# Exit
+exit

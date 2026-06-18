@@ -1,0 +1,5 @@
+read_verilog hd_kernel_synth_small.v
+synth -top popcount_tree
+abc -lut 6
+tee -o hdk_synth_default.rpt stat -tech
+exit
