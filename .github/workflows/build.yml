@@ -31,11 +31,22 @@ jobs:
         echo "=== RESOURCE SUMMARY ==="
         grep -E "(Number of cells|LUT|FF|ABC RESULTS)" yosys_report.txt | head -20
 
-    - name: Upload Yosys report
+    - name: Synthesize parallel POPCOUNT tree
+      run: |
+        cd vhdl
+        yosys -s synth_tree.ys 2>&1 | tee tree_synth.txt
+        echo ""
+        echo "=== TREE LUT COUNT ==="
+        grep "ABC RESULTS" tree_synth.txt -A5 | head -10
+        grep "\$lut" tree_synth.txt | head -5
+
+    - name: Upload reports
       uses: actions/upload-artifact@v4
       with:
-        name: yosys-report
-        path: vhdl/yosys_report.txt
+        name: hdk-reports
+        path: |
+          vhdl/yosys_report.txt
+          vhdl/tree_synth.txt
 
   vivado-build:
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_vivado == 'true'
