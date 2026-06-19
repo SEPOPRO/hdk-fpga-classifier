@@ -97,14 +97,13 @@ jobs:
       with:
         name: vivado-reports
         path: |
-          vivado_project_ready/hdk_impl_utilization.rpt
-          vivado_project_ready/hdk_impl_timing.rpt
-          vivado_project_ready/hdk_power.rpt
-          vivado_project_ready/hdk_synth_utilization.rpt
+          **/*.rpt
           vivado_project_ready/vivado_build.log
 
     - name: Upload bitstream
       uses: actions/upload-artifact@v4
       with:
         name: hdk-bitstream
-        path: vivado_project_ready/*.bit
+        path: |
+          **/*.bit
+          vivado_project_ready/**/*.bit
