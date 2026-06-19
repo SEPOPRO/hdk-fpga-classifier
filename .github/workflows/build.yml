@@ -52,7 +52,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_vivado == 'true'
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/teros-technology/vivado:2024.2
+      image: ghcr.io/teros-technology/vivado:2023.1
 
     steps:
     - uses: actions/checkout@v4
