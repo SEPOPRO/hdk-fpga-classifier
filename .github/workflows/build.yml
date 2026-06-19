@@ -55,10 +55,16 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Add Vivado to PATH
+      shell: pwsh
+      run: |
+        echo "C:\AMDDesignTools\2025.2\Vivado\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
     - name: Run Vivado build
+      shell: pwsh
       run: |
         cd vivado_project_ready
-        vivado -mode batch -source build_hdk.tcl 2>&1 | tee vivado_build.log
+        vivado -mode batch -source build_hdk.tcl 2>&1 | Tee-Object -FilePath vivado_build.log
 
     - name: Parse results
       run: |
