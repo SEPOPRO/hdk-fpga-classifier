@@ -68,15 +68,20 @@ jobs:
         vivado -mode batch -source build_hdk.tcl 2>&1
 
     - name: Parse results
+      shell: powershell
       run: |
-        echo "=== UTILIZATION ==="
-        grep -A30 "Slice LUTs" vivado_project_ready/hdk_impl_utilization.rpt | head -35
-        echo ""
-        echo "=== TIMING ==="
-        grep -A10 "Design Timing Summary" vivado_project_ready/hdk_impl_timing.rpt | head -15
-        echo ""
-        echo "=== POWER ==="
-        grep -E "Total On-Chip Power|Junction Temperature" vivado_project_ready/hdk_power.rpt | head -5
+        cd vivado_project_ready
+        Write-Host "=== UTILIZATION ==="
+        Get-Content hdk_impl_utilization.rpt -TotalCount 40 | Select-String "Slice LUTs"
+        Write-Host ""
+        Write-Host "=== TIMING ==="
+        Get-Content hdk_impl_timing.rpt -TotalCount 20 | Select-String "WNS|Design Timing"
+        Write-Host ""
+        Write-Host "=== POWER ==="
+        Get-Content hdk_power.rpt -TotalCount 20 | Select-String "Total On-Chip|Junction"
+        Write-Host ""
+        Write-Host "=== SYNTHESIS UTILIZATION ==="
+        Get-Content hdk_synth_utilization.rpt -TotalCount 40 | Select-String "Slice LUTs"
 
     - name: Upload Vivado reports
       uses: actions/upload-artifact@v4
@@ -86,6 +91,7 @@ jobs:
           vivado_project_ready/hdk_impl_utilization.rpt
           vivado_project_ready/hdk_impl_timing.rpt
           vivado_project_ready/hdk_power.rpt
+          vivado_project_ready/hdk_synth_utilization.rpt
           vivado_project_ready/vivado_build.log
 
     - name: Upload bitstream
