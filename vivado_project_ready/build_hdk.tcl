@@ -48,6 +48,9 @@ set_property top tb_hd_classifier [get_filesets sim_1]
 # Run synthesis
 launch_runs synth_1 -jobs 4
 wait_on_run synth_1
+if {[get_property PROGRESS [get_runs synth_1]] != "100%"} {
+    error "Synthesis failed"
+}
 open_run synth_1 -name synth_1
 
 # Report resource utilization
