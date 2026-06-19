@@ -3,10 +3,10 @@
 # SW Build 6299465 on Fri Nov 14 19:35:11 GMT 2025
 # IP Build 6300035 on Fri Nov 14 10:48:45 MST 2025
 # SharedData Build 6298862 on Thu Nov 13 04:50:51 MST 2025
-# Start of session at: Fri Jun 19 11:24:43 2026
-# Process ID         : 20560
+# Start of session at: Fri Jun 19 13:48:36 2026
+# Process ID         : 19764
 # Current directory  : C:/Users/raem9/Desktop/HDK_Prototype/HDK_v4.8_Final/vivado_project_ready
-# Command line       : vivado.exe -mode batch -source synth_test_d1000.tcl
+# Command line       : vivado.exe -mode batch -source synth_full.tcl
 # Log file           : C:/Users/raem9/Desktop/HDK_Prototype/HDK_v4.8_Final/vivado_project_ready/vivado.log
 # Journal file       : C:/Users/raem9/Desktop/HDK_Prototype/HDK_v4.8_Final/vivado_project_ready\vivado.jou
 # Running On         : TQSC
@@ -19,6 +19,6 @@
 # Host memory        : 25439 MB
 # Swap memory        : 9663 MB
 # Total Virtual      : 35102 MB
-# Available Virtual  : 21640 MB
+# Available Virtual  : 19500 MB
 #-----------------------------------------------------------
-source synth_test_d1000.tcl
+source synth_full.tcl
