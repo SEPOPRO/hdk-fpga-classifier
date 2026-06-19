@@ -66,22 +66,31 @@ jobs:
         cd vivado_project_ready
         call "C:\AMDDesignTools\2025.2\Vivado\settings64.bat"
         vivado -mode batch -source build_hdk.tcl 2>&1
+        echo "=== FILES GENERATED ==="
+        dir /s *.rpt
 
     - name: Parse results
       shell: powershell
       run: |
         cd vivado_project_ready
-        Write-Host "=== UTILIZATION ==="
-        Get-Content hdk_impl_utilization.rpt -TotalCount 40 | Select-String "Slice LUTs"
+        Write-Host "=== SEARCHING FOR .RPT FILES ==="
+        Get-ChildItem -Recurse -Filter *.rpt | Select FullName, Length
+        Write-Host ""
+        $rpt = Get-ChildItem -Recurse -Filter "hdk_impl_utilization.rpt" | Select-Object -First 1
+        if ($rpt) {
+            Write-Host "=== FOUND: $($rpt.FullName) ==="
+            Get-Content $rpt.FullName -TotalCount 40 | Select-String "Slice LUTs"
+        } else {
+            Write-Host "=== NO .RPT FILES FOUND ==="
+        }
         Write-Host ""
         Write-Host "=== TIMING ==="
-        Get-Content hdk_impl_timing.rpt -TotalCount 20 | Select-String "WNS|Design Timing"
+        $rpt2 = Get-ChildItem -Recurse -Filter "hdk_impl_timing.rpt" | Select-Object -First 1
+        if ($rpt2) { Get-Content $rpt2.FullName -TotalCount 20 | Select-String "WNS|Design Timing" }
         Write-Host ""
         Write-Host "=== POWER ==="
-        Get-Content hdk_power.rpt -TotalCount 20 | Select-String "Total On-Chip|Junction"
-        Write-Host ""
-        Write-Host "=== SYNTHESIS UTILIZATION ==="
-        Get-Content hdk_synth_utilization.rpt -TotalCount 40 | Select-String "Slice LUTs"
+        $rpt3 = Get-ChildItem -Recurse -Filter "hdk_power.rpt" | Select-Object -First 1
+        if ($rpt3) { Get-Content $rpt3.FullName -TotalCount 20 | Select-String "Total On-Chip|Junction" }
 
     - name: Upload Vivado reports
       uses: actions/upload-artifact@v4
