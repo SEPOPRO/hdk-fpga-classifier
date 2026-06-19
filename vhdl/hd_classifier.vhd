@@ -83,7 +83,7 @@ architecture Behavioral of HDK is
     ---------------------------------------------------------------------------
     signal rx_buffer       : STD_LOGIC_VECTOR(7 downto 0);
     signal rx_packet_type  : STD_LOGIC_VECTOR(7 downto 0);
-    signal rx_packet_len   : integer range 0 to 65535;
+    signal rx_packet_len   : STD_LOGIC_VECTOR(15 downto 0) := (others => '0');
     signal rx_packet_count : integer range 0 to 65535;
     signal rx_checksum     : STD_LOGIC_VECTOR(7 downto 0);
     signal rx_calc_checksum: STD_LOGIC_VECTOR(7 downto 0);
@@ -120,6 +120,11 @@ architecture Behavioral of HDK is
     signal min_class       : STD_LOGIC_VECTOR(CLASS_WIDTH-1 downto 0);
     signal min_confidence  : STD_LOGIC_VECTOR(CONFIDENCE_WIDTH-1 downto 0);
     signal argmin_valid    : STD_LOGIC := '0';
+
+    ---------------------------------------------------------------------------
+    -- Flattened distances for argmin
+    ---------------------------------------------------------------------------
+    signal distances_flat  : STD_LOGIC_VECTOR(N_CLASSES * D_WIDTH - 1 downto 0);
 
     ---------------------------------------------------------------------------
     -- LED blink
@@ -175,6 +180,11 @@ begin
             done   => open
         );
 
+    -- Flatten distances array for argmin
+    gen_flat: for i in 0 to N_CLASSES-1 generate
+        distances_flat((i+1) * D_WIDTH - 1 downto i * D_WIDTH) <= distances(i);
+    end generate;
+
     ---------------------------------------------------------------------------
     -- Argmin (find minimum distance)
     ---------------------------------------------------------------------------
@@ -188,7 +198,7 @@ begin
             clk         => clk,
             rst_n       => rst_n,
             en          => distances_valid,
-            values      => distances,
+            values      => distances_flat,
             min_index   => min_class,
             min_value   => min_dist,
             done        => argmin_valid
@@ -292,7 +302,7 @@ begin
                                         proto_wdata((rx_packet_count mod 2500) * 8 + b) <= rx_byte(b);
                                     end if;
                                 end loop;
-                                if rx_packet_count = rx_packet_len - 1 then
+                                if rx_packet_count = to_integer(unsigned(rx_packet_len)) - 1 then
                                     proto_we <= '1';
                                 end if;
                             end if;
@@ -305,12 +315,12 @@ begin
                                         doc_vector((rx_packet_count mod 2500) * 8 + b) <= rx_byte(b);
                                     end if;
                                 end loop;
-                                if rx_packet_count = rx_packet_len - 1 then
+                                if rx_packet_count = to_integer(unsigned(rx_packet_len)) - 1 then
                                     doc_ready <= '1';
                                 end if;
                             end if;
 
-                            if rx_packet_count = rx_packet_len - 1 then
+                            if rx_packet_count = to_integer(unsigned(rx_packet_len)) - 1 then
                                 state <= CHECKSUM;
                             else
                                 rx_packet_count <= rx_packet_count + 1;
@@ -404,9 +414,9 @@ begin
                                 rx_calc_checksum <= rx_calc_checksum xor min_dist(7 downto 0);
                                 rx_packet_count <= 2;
                             elsif rx_packet_count = 2 then
-                                tx_byte <= min_dist(D_WIDTH-1 downto 8);
+                                tx_byte <= "0" & min_dist(D_WIDTH-1 downto 8);
                                 tx_start <= '1';
-                                rx_calc_checksum <= rx_calc_checksum xor min_dist(D_WIDTH-1 downto 8);
+                                rx_calc_checksum <= rx_calc_checksum xor ("0" & min_dist(D_WIDTH-1 downto 8));
                                 rx_packet_count <= 3;
                             -- Byte 3: Status (0 = OK)
                             else

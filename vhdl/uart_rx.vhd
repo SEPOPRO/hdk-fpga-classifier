@@ -20,7 +20,7 @@ entity uart_rx is
 end uart_rx;
 
 architecture Behavioral of uart_rx is
-    type state_type is (IDLE, START, DATA, STOP);
+    type state_type is (IDLE, START_BIT, RECV_DATA, STOP_BIT);
     signal state      : state_type := IDLE;
     signal tick_count : integer range 0 to BAUD_TICK_COUNT-1 := 0;
     signal bit_count  : integer range 0 to 7 := 0;
@@ -29,6 +29,7 @@ architecture Behavioral of uart_rx is
     signal rx_filtered: STD_LOGIC;
     signal sample_tick: STD_LOGIC := '0';
     signal half_tick  : integer range 0 to BAUD_TICK_COUNT-1;
+    signal data_int   : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
 begin
 
     half_tick <= BAUD_TICK_COUNT / 2;
@@ -83,7 +84,7 @@ begin
                 framing_error <= '0';
                 bit_count <= 0;
                 shift_reg <= (others => '0');
-                data <= (others => '0');
+                data_int <= (others => '0');
             else
                 data_valid <= '0';
                 framing_error <= '0';
@@ -91,15 +92,15 @@ begin
                 case state is
                     when IDLE =>
                         if rx_filtered = '0' then
-                            state <= START;
+                            state <= START_BIT;
                             tick_count <= 0;
                         end if;
 
-                    when START =>
+                    when START_BIT =>
                         -- Sample at midpoint of start bit
                         if sample_tick = '1' then
                             if rx_filtered = '0' then
-                                state <= DATA;
+                                state <= RECV_DATA;
                                 bit_count <= 0;
                                 tick_count <= 0;
                             else
@@ -107,20 +108,20 @@ begin
                             end if;
                         end if;
 
-                    when DATA =>
+                    when RECV_DATA =>
                         if sample_tick = '1' then
                             shift_reg <= rx_filtered & shift_reg(7 downto 1);
                             if bit_count = 7 then
-                                state <= STOP;
+                                state <= STOP_BIT;
                                 tick_count <= 0;
                             else
                                 bit_count <= bit_count + 1;
                             end if;
                         end if;
 
-                    when STOP =>
+                    when STOP_BIT =>
                         if sample_tick = '1' then
-                            data <= shift_reg;
+                            data_int <= shift_reg;
                             data_valid <= '1';
                             if rx_filtered = '1' then
                                 framing_error <= '0';
@@ -133,5 +134,7 @@ begin
             end if;
         end if;
     end process;
+    
+    data <= data_int;
 
 end Behavioral;
