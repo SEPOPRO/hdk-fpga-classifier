@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>HDK FPGA v4.8 — Technical White Paper</title>
+<title>RPK FPGA v4.8 — Technical White Paper</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
@@ -86,8 +86,8 @@ tr:hover{background:#f0f4f8}
 
 <div class="cover">
   <span class="badge">Technical White Paper · v4.8</span>
-  <h1>HDK <span>FPGA</span></h1>
-  <div class="sub">Hyperdimensional Kernel Engine — Acelerador Zero MatMul</div>
+  <h1> RPK <span>FPGA</span></h1>
+  <div class="sub">Random Projection Kernel Engine — Acelerador Zero MatMul</div>
   <div class="stats">
     <div class="stat"><div class="n">71.09%</div><div class="l">Precisión (20NG)</div></div>
     <div class="stat"><div class="n">0</div><div class="l">DSPs</div></div>
@@ -100,7 +100,7 @@ tr:hover{background:#f0f4f8}
 
 <div class="sec">
   <h2>Resumen Ejecutivo</h2>
-  <p>HDK es un clasificador de texto en FPGA Artix-7 XC7A200T con cero multiplicaciones de matriz. Usa solo lógica LUT — proyección aleatoria binaria + L-BFGS — alcanzando 71.09% de precisión en 20 Newsgroups con <strong>cero DSPs, cero BRAMs y cero MatMul</strong>.</p>
+  <pRPK es un clasificador de texto en FPGA Artix-7 XC7A200T con cero multiplicaciones de matriz. Usa solo lógica LUT — proyección aleatoria binaria + L-BFGS — alcanzando 71.09% de precisión en 20 Newsgroups con <strong>cero DSPs, cero BRAMs y cero MatMul</strong>.</p>
 </div>
 
 <div class="sec">
@@ -159,7 +159,7 @@ tr:hover{background:#f0f4f8}
       <svg viewBox="0 0 300 180" style="width:100%;max-width:300px">
         <line x1="40" y1="160" x2="280" y2="160" stroke="#ddd"/>
         <rect x="80" y="45" width="60" height="115" rx="3" fill="#00b4ff"/>
-        <text x="110" y="180" text-anchor="middle" font-size="9" fill="#444">HDK</text>
+        <text x="110" y="180" text-anchor="middle" font-size="9" fill="#444">RPK</text>
         <text x="110" y="38" text-anchor="middle" font-size="8" fill="#00b4ff">71%</text>
         <rect x="170" y="80" width="60" height="80" rx="3" fill="#e17055"/>
         <text x="200" y="180" text-anchor="middle" font-size="9" fill="#444">Edge TPU</text>
@@ -170,9 +170,9 @@ tr:hover{background:#f0f4f8}
 </div>
 
 <div class="sec">
-  <h2>HDK vs Edge TPU</h2>
+  <h2RPK vs Edge TPU</h2>
   <table>
-    <tr><th>Métrica</th><th>HDK FPGA</th><th>Edge TPU</th><th>Ventaja</th></tr>
+    <tr><th>Métrica</th><th>RPK FPGA</th><th>Edge TPU</th><th>Ventaja</th></tr>
     <tr class="hl"><td>Precisión</td><td class="b">71.09%</td><td>~50%</td><td class="g">+21% ✅</td></tr>
     <tr><td>Throughput</td><td class="b">~5,000/s</td><td>500/s</td><td class="g">10× ✅</td></tr>
     <tr><td>MatMul</td><td class="g">0</td><td>10M</td><td class="g">∞ ✅</td></tr>
@@ -184,7 +184,7 @@ tr:hover{background:#f0f4f8}
 
 <div class="sec">
   <h2>Consumo Energético</h2>
-  <p>HDK FPGA usa <strong>0 DSPs y 0 BRAMs</strong>, lo que reduce drásticamente el consumo frente a arquitecturas basadas en MAC. La estimación se basa en:</p>
+  <p>RPK FPGA usa <strong>0 DSPs y 0 BRAMs</strong>, lo que reduce drásticamente el consumo frente a arquitecturas basadas en MAC. La estimación se basa en:</p>
   <div class="cards">
     <div class="card"><div class="lbl">Potencia dinámica</div><div class="val gold">~1.2 W</div><div class="note">62K LUTs a 50 MHz</div></div>
     <div class="card"><div class="lbl">Potencia estática</div><div class="val gold">~0.3 W</div><div class="note">Leakage Artix-7</div></div>
@@ -192,7 +192,7 @@ tr:hover{background:#f0f4f8}
     <div class="card"><div class="lbl">Energía/inferencia</div><div class="val gold">~400 µJ</div><div class="note">vs 4,000 µJ Edge TPU</div></div>
   </div>
   <table>
-    <tr><th>Componente</th><th>HDK FPGA</th><th>Edge TPU</th><th>Ahorro</th></tr>
+    <tr><th>Componente</th><th>RPK FPGA</th><th>Edge TPU</th><th>Ahorro</th></tr>
     <tr class="hl"><td>Potencia total</td><td class="b">~1.5-2.0 W</td><td>2.0 W</td><td class="g">~25%</td></tr>
     <tr><td>Energía por inferencia</td><td class="b">~400 µJ</td><td>4,000 µJ</td><td class="g">10× menos</td></tr>
     <tr><td>Inferencias/kWh</td><td class="b">~9 millones</td><td>~900,000</td><td class="g">10× más</td></tr>
@@ -206,13 +206,13 @@ tr:hover{background:#f0f4f8}
   <div class="cards">
     <div class="card"><div class="lbl">Costo hardware</div><div class="val g">$150</div><div class="note">Artix-7 XC7A200T</div></div>
     <div class="card"><div class="lbl">Costo Edge TPU</div><div class="val">$150</div><div class="note">Coral Dev Board Mini</div></div>
-    <div class="card"><div class="lbl">$/inferencia (5 años)</div><div class="val g">$0.0000006</div><div class="note">HDK FPGA</div></div>
+    <div class="card"><div class="lbl">$/inferencia (5 años)</div><div class="val g">$0.0000006</div><div class="note">RPK FPGA</div></div>
     <div class="card"><div class="lbl">$/inferencia Edge TPU</div><div class="val" style="color:#e17055">$0.00003</div><div class="note">50× más caro</div></div>
   </div>
 
   <h3>Costo Total de Propiedad (5 años)</h3>
   <table>
-    <tr><th>Componente</th><th>HDK FPGA</th><th>Edge TPU</th></tr>
+    <tr><th>Componente</th><th>RPK FPGA</th><th>Edge TPU</th></tr>
     <tr><td>Hardware</td><td class="b">$150</td><td>$150</td></tr>
     <tr><td>Energía (5 años)</td><td class="b">~$9</td><td>~$13</td></tr>
     <tr><td>Infraestructura</td><td class="b">$0</td><td>$330</td></tr>
@@ -220,7 +220,7 @@ tr:hover{background:#f0f4f8}
     <tr class="hl"><td><strong>Total 5 años</strong></td><td class="b"><strong>~$160</strong></td><td><strong>~$2,500</strong></td></tr>
   </table>
   <p style="font-size:13px;color:#444;margin-top:8px;"><strong>Ahorro total: ~$2,340 por unidad en 5 años (93.6% menos).</strong></p>
-  <p style="font-size:12px;color:#8899aa;">* Infraestructura Edge TPU incluye servidor host, cableado, refrigeración. Mantenimiento incluye actualizaciones SDK, soporte, reemplazo. HDK FPGA no requiere host externo ni mantenimiento de software.</p>
+  <p style="font-size:12px;color:#8899aa;">* Infraestructura Edge TPU incluye servidor host, cableado, refrigeración. Mantenimiento incluye actualizaciones SDK, soporte, reemplazo. RPK FPGA no requiere host externo ni mantenimiento de software.</p>
 </div>
 
 <div class="sec">
@@ -235,11 +235,11 @@ tr:hover{background:#f0f4f8}
 
 <div class="sec">
   <h2>Conclusión</h2>
-  <p>HDK FPGA supera al Edge TPU en precisión (+21%), throughput (10×) y costo total (~15×), con cero DSPs y cero MatMul. Datos validados con Vivado 2025.2 y validación estadística 10-fold.</p>
-  <p style="font-size:12px;color:#8899aa;margin-top:16px">HDK v4.8 · Junio 2026 · <a href="https://github.com/SEPOPRO/hdk-fpga-classifier" style="color:#00b4ff">github.com/SEPOPRO/hdk-fpga-classifier</a></p>
+  <p>RPK FPGA supera al Edge TPU en precisión (+21%), throughput (10×) y costo total (~15×), con cero DSPs y cero MatMul. Datos validados con Vivado 2025.2 y validación estadística 10-fold.</p>
+  <p style="font-size:12px;color:#8899aa;margin-top:16px">RPK v4.8 · Junio 2026 · <a href="https://github.com/SEPOPRO/hdk-fpga-classifier" style="color:#00b4ff">github.com/SEPOPRO/hdk-fpga-classifier</a></p>
 </div>
 
-<div class="footer">HDK FPGA Technical White Paper · v1.0 · Junio 2026</div>
+<div class="footer">RPK FPGA Technical White Paper · v1.0 · Junio 2026</div>
 </div>
 </div>
 
@@ -248,8 +248,8 @@ tr:hover{background:#f0f4f8}
 
 <div class="cover">
   <span class="badge">Technical White Paper · v4.8</span>
-  <h1>HDK <span>FPGA</span></h1>
-  <div class="sub">Hyperdimensional Kernel Engine — Zero MatMul Accelerator</div>
+  <h1> RPK <span>FPGA</span></h1>
+  <div class="sub">Random Projection Kernel Engine — Zero MatMul Accelerator</div>
   <div class="stats">
     <div class="stat"><div class="n">71.09%</div><div class="l">Accuracy (20NG)</div></div>
     <div class="stat"><div class="n">0</div><div class="l">DSPs</div></div>
@@ -262,7 +262,7 @@ tr:hover{background:#f0f4f8}
 
 <div class="sec">
   <h2>Executive Summary</h2>
-  <p>HDK is a zero-matrix-multiply text classifier on Artix-7 XC7A200T FPGA. Using only LUT logic — random binary projection + L-BFGS — it achieves 71.09% accuracy on 20 Newsgroups with <strong>zero DSPs, zero BRAMs, zero MatMul</strong>.</p>
+  <pRPK is a zero-matrix-multiply text classifier on Artix-7 XC7A200T FPGA. Using only LUT logic — random binary projection + L-BFGS — it achieves 71.09% accuracy on 20 Newsgroups with <strong>zero DSPs, zero BRAMs, zero MatMul</strong>.</p>
 </div>
 
 <div class="sec">
@@ -321,7 +321,7 @@ tr:hover{background:#f0f4f8}
       <svg viewBox="0 0 300 180" style="width:100%;max-width:300px">
         <line x1="40" y1="160" x2="280" y2="160" stroke="#ddd"/>
         <rect x="80" y="45" width="60" height="115" rx="3" fill="#00b4ff"/>
-        <text x="110" y="180" text-anchor="middle" font-size="9" fill="#444">HDK</text>
+        <text x="110" y="180" text-anchor="middle" font-size="9" fill="#444">RPK</text>
         <text x="110" y="38" text-anchor="middle" font-size="8" fill="#00b4ff">71%</text>
         <rect x="170" y="80" width="60" height="80" rx="3" fill="#e17055"/>
         <text x="200" y="180" text-anchor="middle" font-size="9" fill="#444">Edge TPU</text>
@@ -332,9 +332,9 @@ tr:hover{background:#f0f4f8}
 </div>
 
 <div class="sec">
-  <h2>HDK vs Edge TPU</h2>
+  <h2RPK vs Edge TPU</h2>
   <table>
-    <tr><th>Metric</th><th>HDK FPGA</th><th>Edge TPU</th><th>Advantage</th></tr>
+    <tr><th>Metric</th><th>RPK FPGA</th><th>Edge TPU</th><th>Advantage</th></tr>
     <tr class="hl"><td>Accuracy</td><td class="b">71.09%</td><td>~50%</td><td class="g">+21% ✅</td></tr>
     <tr><td>Throughput</td><td class="b">~5,000/s</td><td>500/s</td><td class="g">10× ✅</td></tr>
     <tr><td>MatMul</td><td class="g">0</td><td>10M</td><td class="g">∞ ✅</td></tr>
@@ -346,7 +346,7 @@ tr:hover{background:#f0f4f8}
 
 <div class="sec">
   <h2>Power Consumption</h2>
-  <p>HDK FPGA uses <strong>0 DSPs and 0 BRAMs</strong>, drastically reducing power consumption versus MAC-based architectures.</p>
+  <p>RPK FPGA uses <strong>0 DSPs and 0 BRAMs</strong>, drastically reducing power consumption versus MAC-based architectures.</p>
   <div class="cards">
     <div class="card"><div class="lbl">Dynamic Power</div><div class="val gold">~1.2 W</div><div class="note">62K LUTs at 50 MHz</div></div>
     <div class="card"><div class="lbl">Static Power</div><div class="val gold">~0.3 W</div><div class="note">Artix-7 leakage</div></div>
@@ -354,7 +354,7 @@ tr:hover{background:#f0f4f8}
     <div class="card"><div class="lbl">Energy/inference</div><div class="val gold">~400 µJ</div><div class="note">vs 4,000 µJ Edge TPU</div></div>
   </div>
   <table>
-    <tr><th>Metric</th><th>HDK FPGA</th><th>Edge TPU</th><th>Savings</th></tr>
+    <tr><th>Metric</th><th>RPK FPGA</th><th>Edge TPU</th><th>Savings</th></tr>
     <tr class="hl"><td>Total Power</td><td class="b">~1.5-2.0 W</td><td>2.0 W</td><td class="g">~25%</td></tr>
     <tr><td>Energy per inference</td><td class="b">~400 µJ</td><td>4,000 µJ</td><td class="g">10× less</td></tr>
     <tr><td>Inferences/kWh</td><td class="b">~9 million</td><td>~900,000</td><td class="g">10× more</td></tr>
@@ -368,13 +368,13 @@ tr:hover{background:#f0f4f8}
   <div class="cards">
     <div class="card"><div class="lbl">Hardware Cost</div><div class="val g">$150</div><div class="note">Artix-7 XC7A200T</div></div>
     <div class="card"><div class="lbl">Edge TPU Cost</div><div class="val">$150</div><div class="note">Coral Dev Board Mini</div></div>
-    <div class="card"><div class="lbl">$/inference (5yr)</div><div class="val g">$0.0000006</div><div class="note">HDK FPGA</div></div>
+    <div class="card"><div class="lbl">$/inference (5yr)</div><div class="val g">$0.0000006</div><div class="note">RPK FPGA</div></div>
     <div class="card"><div class="lbl">$/inference Edge TPU</div><div class="val" style="color:#e17055">$0.00003</div><div class="note">50× more expensive</div></div>
   </div>
 
   <h3>Total Cost of Ownership (5 Years)</h3>
   <table>
-    <tr><th>Component</th><th>HDK FPGA</th><th>Edge TPU</th></tr>
+    <tr><th>Component</th><th>RPK FPGA</th><th>Edge TPU</th></tr>
     <tr><td>Hardware</td><td class="b">$150</td><td>$150</td></tr>
     <tr><td>Energy (5 years)</td><td class="b">~$9</td><td>~$13</td></tr>
     <tr><td>Infrastructure</td><td class="b">$0</td><td>$330</td></tr>
@@ -382,7 +382,7 @@ tr:hover{background:#f0f4f8}
     <tr class="hl"><td><strong>Total 5 Years</strong></td><td class="b"><strong>~$160</strong></td><td><strong>~$2,500</strong></td></tr>
   </table>
   <p style="font-size:13px;color:#444;margin-top:8px;"><strong>Total savings: ~$2,340 per unit over 5 years (93.6% less).</strong></p>
-  <p style="font-size:12px;color:#8899aa;">* Edge TPU infrastructure includes host server, cabling, cooling. Maintenance includes SDK updates, support, replacement. HDK FPGA requires no external host and no software maintenance.</p>
+  <p style="font-size:12px;color:#8899aa;">* Edge TPU infrastructure includes host server, cabling, cooling. Maintenance includes SDK updates, support, replacement. RPK FPGA requires no external host and no software maintenance.</p>
 </div>
 
 <div class="sec">
@@ -397,11 +397,11 @@ tr:hover{background:#f0f4f8}
 
 <div class="sec">
   <h2>Conclusion</h2>
-  <p>HDK FPGA surpasses Edge TPU in accuracy (+21%), throughput (10×), and total cost (~15×), with zero DSPs and zero MatMul. Data validated with Vivado 2025.2 synthesis and 10-fold cross-validation.</p>
-  <p style="font-size:12px;color:#8899aa;margin-top:16px">HDK v4.8 · June 2026 · <a href="https://github.com/SEPOPRO/hdk-fpga-classifier" style="color:#00b4ff">github.com/SEPOPRO/hdk-fpga-classifier</a></p>
+  <p>RPK FPGA surpasses Edge TPU in accuracy (+21%), throughput (10×), and total cost (~15×), with zero DSPs and zero MatMul. Data validated with Vivado 2025.2 synthesis and 10-fold cross-validation.</p>
+  <p style="font-size:12px;color:#8899aa;margin-top:16px">RPK v4.8 · June 2026 · <a href="https://github.com/SEPOPRO/hdk-fpga-classifier" style="color:#00b4ff">github.com/SEPOPRO/hdk-fpga-classifier</a></p>
 </div>
 
-<div class="footer">HDK FPGA Technical White Paper · v1.0 · June 2026</div>
+<div class="footer">RPK FPGA Technical White Paper · v1.0 · June 2026</div>
 </div>
 </div>
 
