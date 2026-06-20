@@ -1,0 +1,19 @@
+{
+  "kernel_size": 5,
+  "n_orientations": 8,
+  "sigma": 2.0,
+  "lambda": 4.0,
+  "gamma": 0.5,
+  "angles_deg": [
+    0.0,
+    22.5,
+    45.0,
+    67.5,
+    90.0,
+    112.5,
+    135.0,
+    157.5
+  ],
+  "lut_bits": 200,
+  "test_max_response": 15.0
+}
