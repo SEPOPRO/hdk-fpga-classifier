@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>HDK FPGA Prototype - 3D Model</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; background: #080810; font-family: 'Segoe UI', Arial, sans-serif; }
+    canvas { display: block; }
+    #ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+    #title { position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+      color: #8899bb; font-size: 20px; font-weight: 300; letter-spacing: 4px; text-align: center; }
+    #title span { color: #00b4ff; font-weight: 600; }
+    #stats { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+      color: rgba(255,255,255,0.5); font-size: 12px; text-align: center;
+      background: rgba(0,0,0,0.5); padding: 10px 24px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.05); backdrop-filter: blur(10px); }
+    #specs { position: absolute; top: 70px; right: 30px;
+      color: rgba(255,255,255,0.4); font-size: 11px; text-align: right; line-height: 2; font-family: monospace; }
+    #specs span { color: #00b4ff; }
+    #controls { position: absolute; top: 70px; left: 30px;
+      color: rgba(255,255,255,0.3); font-size: 11px; line-height: 1.8; font-family: monospace; }
+  </style>
+</head>
+<body>
+<div id="ui">
+  <div id="title">HDK <span>FPGA</span> PROTOTYPE</div>
+  <div id="specs">
+    FPGA: <span>Artix-7 XC7A200T</span><br>
+    LUTs: <span>~70,000</span><br>
+    DSPs: <span>0</span><br>
+    Freq: <span>~50 MHz</span><br>
+    RAM: <span>0 BRAM</span>
+  </div>
+  <div id="controls">Arrastra para rotar · Rueda para zoom</div>
+  <div id="stats">HDK v4.8 — Zero MatMul · 100% LUT Logic · 71.09% Accuracy</div>
+</div>
+
+<script>
+// === SCENE SETUP ===
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x080810);
+
+const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 1, 2000);
+camera.position.set(380, 120, 380);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+document.body.prepend(renderer.domElement);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.8;
+controls.minDistance = 200;
+controls.maxDistance = 800;
+controls.target.set(0, 0, 0);
+
+// === LIGHTS ===
+const ambient = new THREE.AmbientLight(0x223355, 0.3);
+scene.add(ambient);
+
+const key = new THREE.DirectionalLight(0xffeedd, 1.0);
+key.position.set(300, 500, 300);
+key.castShadow = true;
+scene.add(key);
+
+const fill = new THREE.DirectionalLight(0x4488ff, 0.4);
+fill.position.set(-300, 200, -300);
+scene.add(fill);
+
+const rim = new THREE.DirectionalLight(0x00ddff, 0.3);
+rim.position.set(0, -300, 300);
+scene.add(rim);
+
+const hemi = new THREE.HemisphereLight(0x4488ff, 0x000033, 0.3);
+scene.add(hemi);
+
+// === FLOOR ===
+const floorGeo = new THREE.PlaneGeometry(700, 700);
+const floorMat = new THREE.MeshStandardMaterial({
+  color: 0x0a0a18,
+  roughness: 0.8,
+  metalness: 0.2
+});
+const floor = new THREE.Mesh(floorGeo, floorMat);
+floor.rotation.x = -Math.PI / 2;
+floor.position.y = -85;
+floor.receiveShadow = true;
+scene.add(floor);
+
+// Grid
+const grid = new THREE.GridHelper(500, 30, 0x112244, 0x0a1530);
+grid.position.y = -84;
+scene.add(grid);
+
+// === MATERIALS ===
+const matPCB = new THREE.MeshStandardMaterial({ color: 0x0d1525, roughness: 0.7, metalness: 0.1 });
+const matPCBTop = new THREE.MeshStandardMaterial({ color: 0x0f1a2e, roughness: 0.6, metalness: 0.05 });
+const matFPGA = new THREE.MeshStandardMaterial({ color: 0x1a2038, roughness: 0.5, metalness: 0.3 });
+const matFPGATop = new THREE.MeshStandardMaterial({ color: 0x222a48, roughness: 0.4, metalness: 0.2 });
+const matBGA = new THREE.MeshStandardMaterial({ color: 0xccb060, roughness: 0.3, metalness: 0.8 });
+const matGold = new THREE.MeshStandardMaterial({ color: 0xd4a840, roughness: 0.2, metalness: 0.9 });
+const matLED = new THREE.MeshStandardMaterial({ color: 0x00dd88, emissive: 0x00dd88, emissiveIntensity: 1.5 });
+const matLEDOff = new THREE.MeshStandardMaterial({ color: 0x222233, emissive: 0x000000 });
+const matLEDRed = new THREE.MeshStandardMaterial({ color: 0xdd2222, emissive: 0xdd2222, emissiveIntensity: 1.5 });
+const matUSB = new THREE.MeshStandardMaterial({ color: 0x151d2e, roughness: 0.5, metalness: 0.3 });
+const matPin = new THREE.MeshStandardMaterial({ color: 0x888899, roughness: 0.3, metalness: 0.7 });
+const matHeatsink = new THREE.MeshStandardMaterial({ color: 0x333344, roughness: 0.6, metalness: 0.5 });
+const matTrace = new THREE.MeshBasicMaterial({ color: 0x1a2a1a, transparent: true, opacity: 0.6 });
+
+// === BUILD FUNCTIONS ===
+
+function createPCB() {
+  const group = new THREE.Group();
+  
+  // Board shape
+  const shape = new THREE.Shape();
+  shape.moveTo(-130, -75);
+  shape.lineTo(130, -75);
+  shape.lineTo(130, 75);
+  shape.lineTo(100, 75);
+  shape.lineTo(100, 82);
+  shape.lineTo(-130, 82);
+  shape.closePath();
+  
+  const extrudeSettings = { depth: 4, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.3, bevelSegments: 4 };
+  const geo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+  const mesh = new THREE.Mesh(geo, matPCB);
+  mesh.position.set(0, 0, -4);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  group.add(mesh);
+  
+  // Top surface
+  const topShape = new THREE.Shape();
+  topShape.moveTo(-128, -73);
+  topShape.lineTo(128, -73);
+  topShape.lineTo(128, 73);
+  topShape.lineTo(98, 73);
+  topShape.lineTo(98, 80);
+  topShape.lineTo(-128, 80);
+  topShape.closePath();
+  
+  const topGeo = new THREE.ShapeGeometry(topShape);
+  const topMesh = new THREE.Mesh(topGeo, matPCBTop);
+  topMesh.position.set(0, 0, -1.5);
+  topMesh.rotation.x = -Math.PI / 2;
+  group.add(topMesh);
+  
+  // Mounting holes
+  const holeMat = new THREE.MeshStandardMaterial({ color: 0x080810 });
+  const holePos = [[-115, -60, 0], [115, -60, 0], [115, 60, 0], [-115, 60, 0], [-115, 78, 0]];
+  for (let p of holePos) {
+    const hole = new THREE.Mesh(new THREE.RingGeometry(3, 4.5, 24), new THREE.MeshStandardMaterial({ color: 0x333344, roughness: 0.8 }));
+    hole.position.set(p[0], p[2], p[1]);
+    hole.rotation.x = -Math.PI / 2;
+    group.add(hole);
+  }
+
+  // Gold edge connectors
+  for (let i = -12; i < 12; i++) {
+    const conn = new THREE.Mesh(new THREE.BoxGeometry(3.5, 1.5, 3), matGold);
+    conn.position.set(i * 8 + 4, 80.5, -2);
+    group.add(conn);
+  }
+  
+  return group;
+}
+
+function createFPGA() {
+  const group = new THREE.Group();
+  
+  // BGA balls
+  for (let x = -22; x <= 22; x += 5) {
+    for (let y = -22; y <= 22; y += 5) {
+      const ball = new THREE.Mesh(new THREE.SphereGeometry(1.2, 8, 8), matBGA);
+      ball.position.set(x, y, -3);
+      group.add(ball);
+    }
+  }
+  
+  // Package
+  const pkg = new THREE.Mesh(new THREE.BoxGeometry(54, 54, 3.5), matFPGA);
+  pkg.position.set(0, 0, -1);
+  pkg.castShadow = true;
+  group.add(pkg);
+  
+  // Top marking
+  const top = new THREE.Mesh(new THREE.BoxGeometry(50, 50, 0.4), matFPGATop);
+  top.position.set(0, 0, 0.8);
+  group.add(top);
+  
+  // Text indicator
+  const textMat = new THREE.MeshBasicMaterial({ color: 0x334466 });
+  for (let i = 0; i < 4; i++) {
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(4, 2, 0.2), textMat);
+    bar.position.set(-12 + i * 7, -15, 1.2);
+    group.add(bar);
+  }
+  
+  // Corner dot
+  const dot = new THREE.Mesh(new THREE.SphereGeometry(1, 8, 8), new THREE.MeshStandardMaterial({ color: 0x445577 }));
+  dot.position.set(-18, -18, 1.2);
+  group.add(dot);
+  
+  return group;
+}
+
+function createVias() {
+  const group = new THREE.Group();
+  const viaMat = new THREE.MeshStandardMaterial({ color: 0x2a3a2a, roughness: 0.7, metalness: 0.2 });
+  
+  const seed = 42;
+  let rng = seed;
+  function pseudoRandom() { rng = (rng * 16807 + 0) % 2147483647; return rng / 2147483647; }
+  
+  for (let x = -110; x <= 110; x += 16) {
+    for (let y = -65; y <= 65; y += 16) {
+      if (Math.abs(x) < 32 && Math.abs(y) < 32) continue;
+      if (pseudoRandom() > 0.55) continue;
+      const via = new THREE.Mesh(new THREE.CylinderGeometry(1, 1.4, 2, 8), viaMat);
+      via.position.set(x + (pseudoRandom()-0.5)*4, y + (pseudoRandom()-0.5)*4, -2.5);
+      group.add(via);
+    }
+  }
+  
+  return group;
+}
+
+function createTraces() {
+  const group = new THREE.Group();
+  const traceMat = new THREE.MeshBasicMaterial({ color: 0x1a2a1a, transparent: true, opacity: 0.4 });
+  
+  let rng = 10;
+  function pr() { rng = (rng * 16807 + 0) % 2147483647; return rng / 2147483647; }
+  
+  for (let i = 0; i < 50; i++) {
+    let x1 = pr() * 240 - 120;
+    let y1 = pr() * 140 - 70;
+    let x2 = x1 + (pr()-0.5) * 50;
+    let y2 = y1 + (pr()-0.5) * 20;
+    
+    if (Math.abs(x1) < 30 && Math.abs(y1) < 30) continue;
+    if (Math.abs(x2) < 30 && Math.abs(y2) < 30) continue;
+    
+    const points = [];
+    points.push(new THREE.Vector3(x1, -1.5, y1));
+    points.push(new THREE.Vector3(x1 + (x2-x1)*0.3, -1.5, y1));
+    points.push(new THREE.Vector3(x1 + (x2-x1)*0.7, -1.5, y2));
+    points.push(new THREE.Vector3(x2, -1.5, y2));
+    
+    const curve = new THREE.CatmullRomCurve3(points);
+    const tubeGeo = new THREE.TubeGeometry(curve, 4, 0.15, 3, false);
+    const tube = new THREE.Mesh(tubeGeo, traceMat);
+    group.add(tube);
+  }
+  
+  return group;
+}
+
+function createLEDs() {
+  const group = new THREE.Group();
+  
+  for (let i = 0; i < 8; i++) {
+    const housing = new THREE.Mesh(new THREE.BoxGeometry(6, 3, 2.5), new THREE.MeshStandardMaterial({ color: 0x1a1a2a }));
+    housing.position.set(-90 + i * 22, -68, -1.5);
+    group.add(housing);
+    
+    // LED lens
+    const lens = new THREE.Mesh(new THREE.SphereGeometry(2, 12, 12), matLED.clone());
+    lens.position.set(-90 + i * 22, -68, 0.5);
+    lens.userData.ledIndex = i;
+    lens.userData.phase = i * 0.5;
+    group.add(lens);
+  }
+  
+  return group;
+}
+
+function createUSBUART() {
+  const group = new THREE.Group();
+  
+  // USB connector
+  const usb = new THREE.Mesh(new THREE.BoxGeometry(22, 10, 5), matUSB);
+  usb.position.set(-85, 68, -1.5);
+  group.add(usb);
+  
+  // USB metal shield
+  const shield = new THREE.Mesh(new THREE.BoxGeometry(18, 8, 2), new THREE.MeshStandardMaterial({ color: 0x444455, roughness: 0.3, metalness: 0.8 }));
+  shield.position.set(-85, 68, 1.5);
+  group.add(shield);
+  
+  // USB pins
+  for (let i = -2; i <= 2; i++) {
+    const pin = new THREE.Mesh(new THREE.BoxGeometry(1, 1.5, 1.5), matGold);
+    pin.position.set(-85 + i * 3, 68, 3);
+    group.add(pin);
+  }
+  
+  // UART IC
+  const uart = new THREE.Mesh(new THREE.BoxGeometry(16, 12, 2), new THREE.MeshStandardMaterial({ color: 0x181e2e }));
+  uart.position.set(-105, 50, -1.5);
+  group.add(uart);
+  
+  // UART pins
+  for (let i = -6; i <= 6; i += 2) {
+    const p1 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2, 1.5), matPin);
+    p1.position.set(-105 + i, 45, -1.5);
+    group.add(p1);
+    const p2 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2, 1.5), matPin);
+    p2.position.set(-105 + i, 55, -1.5);
+    group.add(p2);
+  }
+  
+  return group;
+}
+
+function createPower() {
+  const group = new THREE.Group();
+  
+  // Regulator
+  const reg = new THREE.Mesh(new THREE.BoxGeometry(22, 16, 3), new THREE.MeshStandardMaterial({ color: 0x222233 }));
+  reg.position.set(85, -50, -1);
+  group.add(reg);
+  
+  // Heatsink fins
+  for (let i = -7; i <= 7; i += 3) {
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(16, 1.5, 3), matHeatsink);
+    fin.position.set(85, -50 + i, 1);
+    group.add(fin);
+  }
+  
+  // Capacitors
+  const capMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.6 });
+  const cap1 = new THREE.Mesh(new THREE.CylinderGeometry(5, 5, 4, 16), capMat);
+  cap1.position.set(55, -28, -1.5);
+  group.add(cap1);
+  
+  const cap2 = new THREE.Mesh(new THREE.CylinderGeometry(5, 5, 4, 16), capMat);
+  cap2.position.set(75, -28, -1.5);
+  group.add(cap2);
+  
+  return group;
+}
+
+function createPins() {
+  const group = new THREE.Group();
+  
+  for (let i = -12; i <= 12; i++) {
+    if (Math.abs(i) < 3) continue;
+    const p1 = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 4, 6), matPin);
+    p1.position.set(i * 5 + 3, 65, -3.5);
+    group.add(p1);
+    const p2 = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 4, 6), matPin);
+    p2.position.set(i * 5 + 3, -65, -3.5);
+    group.add(p2);
+  }
+  
+  return group;
+}
+
+// === BUILD THE BOARD ===
+const boardGroup = new THREE.Group();
+boardGroup.add(createPCB());
+boardGroup.add(createFPGA());
+boardGroup.add(createVias());
+boardGroup.add(createTraces());
+boardGroup.add(createLEDs());
+boardGroup.add(createUSBUART());
+boardGroup.add(createPower());
+boardGroup.add(createPins());
+
+scene.add(boardGroup);
+
+// === ANIMATION ===
+let ledLenses = [];
+
+// Collect LED lenses
+boardGroup.children.forEach(child => {
+  if (child.type === 'Group') {
+    child.children.forEach(c => {
+      if (c.userData && c.userData.ledIndex !== undefined) {
+        ledLenses.push(c);
+      }
+    });
+  }
+});
+
+function animate() {
+  requestAnimationFrame(animate);
+  
+  const t = Date.now() * 0.001;
+  
+  // Animate LEDs
+  for (let lens of ledLenses) {
+    const idx = lens.userData.ledIndex;
+    const phase = lens.userData.phase;
+    const on = Math.sin(t * 2 + phase) > 0;
+    if (on) {
+      lens.material.color.setHex(0x00dd88);
+      lens.material.emissive.setHex(0x00dd88);
+      lens.material.emissiveIntensity = 1.2 + Math.sin(t * 4 + phase) * 0.3;
+    } else {
+      lens.material.color.setHex(0x111122);
+      lens.material.emissive.setHex(0x000000);
+      lens.material.emissiveIntensity = 0;
+    }
+  }
+  
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+animate();
+
+// === RESIZE ===
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>

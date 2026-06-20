@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HDK FPGA Prototype - 3D Model</title>
+  <script>p5.disableFriendlyErrors = true;</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+  <style>
+    html, body { margin: 0; padding: 0; overflow: hidden; background: #0a0a12; font-family: 'Segoe UI', sans-serif; }
+    canvas { display: block; }
+    #info {
+      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+      color: rgba(255,255,255,0.6); font-size: 13px; text-align: center;
+      pointer-events: none; background: rgba(0,0,0,0.6); padding: 8px 18px;
+      border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);
+    }
+    #title {
+      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+      color: #fff; font-size: 22px; font-weight: 300; letter-spacing: 3px;
+      text-align: center; pointer-events: none;
+      text-shadow: 0 0 30px rgba(0,180,255,0.3);
+    }
+    #title span { color: #00b4ff; font-weight: 600; }
+    #specs {
+      position: absolute; top: 70px; right: 25px;
+      color: rgba(255,255,255,0.5); font-size: 11px; text-align: right;
+      pointer-events: none; line-height: 1.8;
+      font-family: 'Consolas', monospace;
+    }
+    #specs span { color: rgba(0,180,255,0.8); }
+    #stats {
+      position: absolute; top: 70px; left: 25px;
+      color: rgba(255,255,255,0.4); font-size: 11px;
+      pointer-events: none; line-height: 1.8;
+      font-family: 'Consolas', monospace;
+    }
+    #stats span { color: #4ecdc4; }
+  </style>
+</head>
+<body>
+<div id="title">HDK <span>FPGA</span> PROTOTYPE</div>
+<div id="specs">
+  FPGA: <span>Artix-7 XC7A200T</span><br>
+  LUTs: <span>~70,000</span><br>
+  DSPs: <span>0</span><br>
+  Freq: <span>~50 MHz</span><br>
+  RAM:  <span>0 BRAM</span>
+</div>
+<div id="stats">
+  Drag to rotate · Scroll to zoom<br>
+  FPS: <span id="fps">60</span>
+</div>
+<div id="info">HDK v4.8 — Zero MatMul · All LUT Logic · 71.09% Accuracy</div>
+
+<script>
+// === 3D HDK FPGA Prototype Model ===
+let camTheta = 0.4, camPhi = 0.3, camDist = 550;
+let targetTheta = 0.4, targetPhi = 0.3, targetDist = 550;
+let lastMouseX, lastMouseY;
+let isDragging = false;
+let boardAngle = 0;
+
+// Colors
+const C = {
+  pcb: [0.08, 0.10, 0.15],
+  pcbEdge: [0.12, 0.14, 0.20],
+  fpga: [0.18, 0.20, 0.28],
+  fpgaTop: [0.22, 0.24, 0.35],
+  gold: [0.85, 0.70, 0.35],
+  copper: [0.75, 0.55, 0.25],
+  ledOn: [0.0, 0.7, 0.4],
+  ledOff: [0.15, 0.15, 0.15],
+  ledRed: [0.8, 0.1, 0.05],
+  uart: [0.15, 0.20, 0.25],
+  usb: [0.12, 0.15, 0.20],
+  pin: [0.6, 0.6, 0.6],
+  via: [0.3, 0.35, 0.3],
+  label: [0.4, 0.6, 0.7],
+  trace: [0.2, 0.25, 0.18],
+  power: [0.7, 0.5, 0.1],
+  heat: [0.35, 0.35, 0.38]
+};
+
+let leds = [];
+let time = 0;
+
+function setup() {
+  createCanvas(windowWidth, windowHeight, WEBGL);
+  pixelDensity(1);
+  setAttributes('perPixelLighting', false);
+  // Enable lights
+  ambientLight(40, 40, 50);
+  directionalLight(180, 180, 200, 1, 1, -1);
+  directionalLight(80, 80, 100, -1, -0.5, 0.5);
+  pointLight(100, 120, 180, 200, 100, 300);
+  
+  // Initialize LED states
+  for (let i = 0; i < 8; i++) {
+    leds.push({ x: -90 + i * 22, y: -55, z: 0, state: random() > 0.5 });
+  }
+  
+  // Enable orbit controls
+  describe('HDK FPGA Prototype 3D model');
+}
+
+function draw() {
+  background(8, 8, 18);
+  time += 0.02;
+  
+  // Auto-rotate slightly
+  if (!isDragging) {
+    targetTheta += 0.001;
+  }
+  
+  // Smooth camera
+  camTheta = lerp(camTheta, targetTheta, 0.08);
+  camPhi = lerp(camPhi, targetPhi, 0.08);
+  camDist = lerp(camDist, targetDist, 0.08);
+  
+  // Camera
+  let cx = camDist * sin(camTheta) * cos(camPhi);
+  let cy = camDist * sin(camPhi);
+  let cz = camDist * cos(camTheta) * cos(camPhi);
+  camera(cx, cy, cz, 0, 0, 0, 0, -1, 0);
+  
+  // Lights from camera
+  pointLight(100, 120, 180, cx * 0.5, cy * 0.5, cz * 0.5);
+  
+  // Draw floor grid
+  drawFloor();
+  
+  // Main board
+  push();
+  rotateX(PI * 0.05);
+  drawPCB();
+  drawFPGA();
+  drawVias();
+  drawTraces();
+  drawLEDs();
+  drawUSBUART();
+  drawPower();
+  drawPins();
+  drawLabels();
+  pop();
+  
+  // Update LEDs
+  for (let i = 0; i < leds.length; i++) {
+    if (frameCount % 120 == floor(i * 15)) {
+      leds[i].state = !leds[i].state;
+    }
+  }
+  
+  // FPS
+  document.getElementById('fps').textContent = floor(frameRate());
+}
+
+function drawFloor() {
+  push();
+  translate(0, 120, 0);
+  rotateX(HALF_PI);
+  for (let i = -5; i <= 5; i++) {
+    for (let j = -5; j <= 5; j++) {
+      let c = ((i + j) % 2 === 0) ? 12 : 8;
+      fill(c, c + 5, c + 15);
+      noStroke();
+      rect(i * 40 - 20, j * 40 - 20, 40, 40);
+    }
+  }
+  pop();
+}
+
+function drawPCB() {
+  // PCB board
+  push();
+  fill(C.pcb[0]*255, C.pcb[1]*255, C.pcb[2]*255);
+  stroke(C.pcbEdge[0]*255, C.pcbEdge[1]*255, C.pcbEdge[2]*255);
+  strokeWeight(0.5);
+  
+  // Board shape
+  beginShape();
+  vertex(-130, -75, -4);
+  vertex(130, -75, -4);
+  vertex(130, 75, -4);
+  vertex(100, 75, -4);
+  vertex(100, 82, -4);
+  vertex(-130, 82, -4);
+  vertex(-130, 75, -4);
+  endShape(CLOSE);
+  
+  // Top surface
+  fill(C.pcb[0]*255*0.9+10, C.pcb[1]*255*0.9+15, C.pcb[2]*255*0.9+20);
+  beginShape();
+  vertex(-128, -73, -2);
+  vertex(128, -73, -2);
+  vertex(128, 73, -2);
+  vertex(98, 73, -2);
+  vertex(98, 80, -2);
+  vertex(-128, 80, -2);
+  vertex(-128, 73, -2);
+  endShape(CLOSE);
+  
+  // Mounting holes
+  fill(15, 15, 25);
+  noStroke();
+  for (let pos of [[-115, -60], [115, -60], [115, 60], [-115, 60], [-115, 78]]) {
+    push();
+    translate(pos[0], pos[1], -3);
+    cylinder(4, 3);
+    pop();
+  }
+  
+  // Gold edge connectors
+  fill(C.gold[0]*255, C.gold[1]*255, C.gold[2]*255);
+  for (let i = -12; i < 12; i++) {
+    push();
+    translate(i * 8 + 4, 80, -1);
+    box(4, 3, 2);
+    pop();
+  }
+  
+  pop();
+}
+
+function drawFPGA() {
+  // FPGA substrate
+  push();
+  translate(0, 0, 0);
+  
+  // BGA balls underneath
+  fill(C.gold[0]*255*0.7, C.gold[1]*255*0.7, C.gold[2]*255*0.7);
+  noStroke();
+  for (let x = -20; x <= 20; x += 6) {
+    for (let y = -20; y <= 20; y += 6) {
+      push();
+      translate(x, y, -2.5);
+      sphere(1.5);
+      pop();
+    }
+  }
+  
+  // FPGA Package
+  fill(C.fpga[0]*255, C.fpga[1]*255, C.fpga[2]*255);
+  stroke(C.fpgaTop[0]*255*0.8, C.fpgaTop[1]*255*0.8, C.fpgaTop[2]*255*0.8);
+  strokeWeight(0.3);
+  box(55, 55, 3.5);
+  
+  // FPGA Top marking
+  fill(C.fpgaTop[0]*255, C.fpgaTop[1]*255, C.fpgaTop[2]*255);
+  noStroke();
+  push();
+  translate(0, 0, 2);
+  box(50, 50, 0.5);
+  pop();
+  
+  // Laser marking (XC7A200T text approximation)
+  fill(30, 35, 50);
+  for (let i = 0; i < 5; i++) {
+    push();
+    translate(-15 + i * 7, -15, 2.5);
+    box(5, 3, 0.3);
+    pop();
+  }
+  
+  // Corner dot
+  fill(40, 45, 60);
+  push();
+  translate(-18, -18, 2.5);
+  sphere(1);
+  pop();
+  
+  pop();
+}
+
+function drawVias() {
+  fill(C.via[0]*255, C.via[1]*255, C.via[2]*255);
+  noStroke();
+  let viaPositions = [];
+  for (let x = -100; x <= 100; x += 15) {
+    for (let y = -60; y <= 60; y += 15) {
+      if (abs(x) < 30 && abs(y) < 30) continue; // skip FPGA area
+      if (random() > 0.55) continue;
+      viaPositions.push([x, y]);
+    }
+  }
+  
+  // Only draw each via once per setup (use seed)
+  randomSeed(42);
+  for (let x = -100; x <= 100; x += 18) {
+    for (let y = -60; y <= 60; y += 18) {
+      if (abs(x) < 35 && abs(y) < 35) continue;
+      if (random() > 0.6) continue;
+      push();
+      translate(x + random(-3, 3), y + random(-3, 3), -1);
+      cylinder(1.2, 2);
+      pop();
+    }
+  }
+}
+
+function drawTraces() {
+  stroke(C.trace[0]*255*0.7, C.trace[1]*255*0.7, C.trace[2]*255*0.7);
+  strokeWeight(0.4);
+  noFill();
+  
+  randomSeed(10);
+  for (let i = 0; i < 40; i++) {
+    let x1 = random(-120, 120);
+    let y1 = random(-70, 70);
+    let x2 = x1 + random(-30, 30);
+    let y2 = y1 + random(-10, 10);
+    
+    if (abs(x1) < 30 && abs(y1) < 30) continue;
+    if (abs(x2) < 30 && abs(y2) < 30) continue;
+    
+    beginShape();
+    vertex(x1, y1, -1.5);
+    vertex(x1 + (x2-x1)*0.3, y1, -1.5);
+    vertex(x1 + (x2-x1)*0.7, y2, -1.5);
+    vertex(x2, y2, -1.5);
+    endShape();
+  }
+}
+
+function drawLEDs() {
+  let ledColors = [
+    [0, 180, 100], [0, 200, 120], [0, 220, 140], // green
+    [0, 180, 100], [0, 200, 120], // green
+    [200, 30, 20],  // red
+    [200, 180, 20], // yellow
+  ];
+  
+  for (let i = 0; i < leds.length; i++) {
+    let led = leds[i];
+    push();
+    translate(led.x, -68, 0);
+    
+    // LED housing
+    fill(30, 30, 40);
+    noStroke();
+    box(8, 4, 2.5);
+    
+    // LED dome
+    let c = led.state ? ledColors[i % ledColors.length] : [40, 40, 50];
+    fill(c[0], c[1], c[2]);
+    push();
+    translate(0, 0, 1.5);
+    sphere(2.5);
+    pop();
+    
+    // Glow effect when on
+    if (led.state) {
+      push();
+      translate(0, 0, 1.5);
+      fill(c[0], c[1], c[2], 30);
+      sphere(5);
+      pop();
+    }
+    
+    pop();
+  }
+}
+
+function drawUSBUART() {
+  // USB connector
+  push();
+  translate(-85, 68, 0);
+  fill(C.usb[0]*255, C.usb[1]*255, C.usb[2]*255);
+  stroke(C.copper[0]*255, C.copper[1]*255, C.copper[2]*255);
+  strokeWeight(0.5);
+  box(20, 10, 5);
+  
+  // USB metal shield
+  fill(60, 65, 75);
+  noStroke();
+  push();
+  translate(0, 3, 2.5);
+  box(16, 8, 2);
+  pop();
+  
+  // USB pins
+  fill(C.gold[0]*255, C.gold[1]*255, C.gold[2]*255);
+  for (let i = -2; i <= 2; i++) {
+    push();
+    translate(i * 3, 0, 3.5);
+    box(1, 2, 1);
+    pop();
+  }
+  
+  // UART IC
+  translate(0, -25, 0);
+  fill(C.uart[0]*255, C.uart[1]*255, C.uart[2]*255);
+  noStroke();
+  box(18, 14, 2);
+  
+  // UART pins
+  fill(C.pin[0]*255, C.pin[1]*255, C.pin[2]*255);
+  for (let i = -7; i <= 7; i += 2) {
+    push();
+    translate(i, -8, 1);
+    box(1, 2, 1);
+    pop();
+    push();
+    translate(i, 8, 1);
+    box(1, 2, 1);
+    pop();
+  }
+  
+  pop();
+}
+
+function drawPower() {
+  // Power regulator
+  push();
+  translate(85, -50, 0);
+  fill(C.heat[0]*255, C.heat[1]*255, C.heat[2]*255);
+  noStroke();
+  box(20, 15, 3);
+  
+  // Heatsink
+  fill(50, 55, 65);
+  for (let i = -7; i <= 7; i += 3.5) {
+    push();
+    translate(0, i, 2);
+    box(14, 2, 2);
+    pop();
+  }
+  
+  // Cap
+  translate(-30, 25, 0);
+  fill(20, 25, 35);
+  cylinder(6, 4);
+  
+  translate(20, 0, 0);
+  cylinder(6, 4);
+  
+  pop();
+}
+
+function drawPins() {
+  // Header pins along edges
+  fill(C.pin[0]*255, C.pin[1]*255, C.pin[2]*255);
+  noStroke();
+  
+  // Bottom headers
+  for (let i = -12; i <= 12; i++) {
+    if (abs(i) < 4) continue;
+    push();
+    translate(i * 5 + 5, 65, 0);
+    cylinder(0.8, 4);
+    pop();
+  }
+  
+  // Top headers
+  for (let i = -12; i <= 12; i++) {
+    if (abs(i) < 4) continue;
+    push();
+    translate(i * 5 + 5, -65, 0);
+    cylinder(0.8, 4);
+    pop();
+  }
+}
+
+function drawLabels() {
+  // Silkscreen labels
+  fill(C.label[0]*255, C.label[1]*255, C.label[2]*255);
+  noStroke();
+  
+  // Small label rectangles
+  let labels = [
+    [-85, 55, "USB"], [0, -40, "XC7A200T"],
+    [85, -55, "PWR"], [-85, -40, "LEDs"],
+    [-40, 68, "UART"], [110, 0, "IO"]
+  ];
+  
+  for (let l of labels) {
+    push();
+    translate(l[0], l[1], 0);
+    fill(C.label[0]*255, C.label[1]*255, C.label[2]*255, 100);
+    box(12, 4, 0.2);
+    pop();
+  }
+}
+
+function mousePressed() {
+  isDragging = true;
+  lastMouseX = mouseX;
+  lastMouseY = mouseY;
+}
+
+function mouseReleased() {
+  isDragging = false;
+}
+
+function mouseDragged() {
+  if (isDragging) {
+    targetTheta += (mouseX - lastMouseX) * 0.005;
+    targetPhi += (mouseY - lastMouseY) * 0.005;
+    targetPhi = constrain(targetPhi, -0.8, 0.8);
+    lastMouseX = mouseX;
+    lastMouseY = mouseY;
+  }
+}
+
+function mouseWheel(event) {
+  targetDist += event.delta * 0.5;
+  targetDist = constrain(targetDist, 200, 900);
+  return false;
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+</script>
+</body>
+</html>

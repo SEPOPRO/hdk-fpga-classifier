@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>HDK FPGA Prototype</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #080810; font-family: 'Segoe UI', sans-serif; }
+    #info { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+      color: rgba(255,255,255,0.4); font-size: 12px; background: rgba(0,0,0,0.6); padding: 10px 25px;
+      border-radius: 8px; pointer-events: none; z-index: 10; text-align: center; }
+    #title { position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+      color: #8899bb; font-size: 20px; letter-spacing: 4px; pointer-events: none; z-index: 10; }
+    #title span { color: #00b4ff; font-weight: 600; }
+    #panel { position: absolute; top: 70px; left: 20px; z-index: 10; }
+    .c { display: flex; align-items: center; gap: 10px; padding: 6px 14px; margin-bottom: 2px;
+      cursor: pointer; border-left: 3px solid transparent; border-radius: 0 6px 6px 0;
+      background: rgba(8,8,16,0.7); backdrop-filter: blur(8px); transition: 0.15s; width: 200px; }
+    .c:hover { background: rgba(0,180,255,0.08); border-left-color: rgba(0,180,255,0.2); }
+    .c.s { background: rgba(0,180,255,0.12); border-left-color: #00b4ff; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .cn { color: rgba(255,255,255,0.7); font-size: 12px; }
+    .cd { color: rgba(255,255,255,0.25); font-size: 9px; }
+    #err { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      color: #ff4444; font-size: 14px; z-index: 100; text-align: center; display: none; }
+  </style>
+</head>
+<body>
+<div id="title">HDK <span>FPGA</span> PROTOTYPE</div>
+<div id="panel"></div>
+<div id="info">HDK v4.8 — Zero MatMul · 100% LUT Logic · 71.09% Accuracy<br>Arrastra para rotar · Rueda para zoom</div>
+<div id="err">❌ Error cargando 3D. Revisa la consola (F12).</div>
+<script>
+// Load Three.js from CDN
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+Promise.all([
+  loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'),
+  loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js')
+]).then(() => {
+  init();
+}).catch(e => {
+  document.getElementById('err').style.display = 'block';
+});
+
+function init() {
+  const ITEMS = [
+    {id:'fpga',name:'FPGA Artix-7',desc:'XC7A200T · ~70K LUTs · 0 DSPs',dot:'#2a3560',hl:0x4488ff},
+    {id:'pcb',name:'PCB Board',desc:'FR-4 · 260×165mm · 8 layers',dot:'#0d1525',hl:0x224488},
+    {id:'bga',name:'BGA Balls',desc:'Gold · 169 interconnects',dot:'#ccb060',hl:0xffdd88},
+    {id:'leds',name:'Status LEDs',desc:'8x Green/Red/Yellow',dot:'#00dd88',hl:0x44ffaa},
+    {id:'usb',name:'USB Connector',desc:'USB 2.0 · FPGA interface',dot:'#1a2a44',hl:0x4488ff},
+    {id:'uart',name:'UART Bridge',desc:'USB-UART · 10 Mbaud',dot:'#181e2e',hl:0x44aaff},
+    {id:'power',name:'Power Regulator',desc:'1.0V · 1.8V · 3.3V LDO',dot:'#222233',hl:0xff8844},
+    {id:'caps',name:'Filter Caps',desc:'22µF · 10µF decoupling',dot:'#1a1a2e',hl:0x88aaff},
+    {id:'pins',name:'Header Pins',desc:'GPIO · 2×20 pins',dot:'#888899',hl:0xaabbcc},
+    {id:'traces',name:'PCB Traces',desc:'50Ω · Differential signals',dot:'#1a2a1a',hl:0x44ff88},
+    {id:'heatsink',name:'Heatsink',desc:'Aluminum · Passive',dot:'#333344',hl:0x888899},
+  ];
+
+  const S = new THREE.Scene(); S.background = new THREE.Color(0x080810);
+  const C = new THREE.PerspectiveCamera(30, innerWidth/innerHeight, 1, 2000); C.position.set(380,80,380);
+  const R = new THREE.WebGLRenderer({antialias:true});
+  R.setSize(innerWidth, innerHeight); R.setPixelRatio(Math.min(devicePixelRatio,2));
+  R.shadowMap.enabled = true; R.toneMapping = THREE.ACESFilmicToneMapping; R.toneMappingExposure = 1.0;
+  document.body.prepend(R.domElement);
+  const O = new THREE.OrbitControls(C, R.domElement);
+  O.enableDamping = true; O.dampingFactor = 0.05; O.autoRotate = true; O.autoRotateSpeed = 0.5;
+  O.minDistance = 200; O.maxDistance = 700;
+
+  S.add(new THREE.AmbientLight(0x223355, 0.3));
+  const l1 = new THREE.DirectionalLight(0xffeedd, 1.0); l1.position.set(300,500,300); l1.castShadow = true; S.add(l1);
+  S.add(new THREE.DirectionalLight(0x4488ff, 0.4).position.set(-300,200,-300));
+  S.add(new THREE.HemisphereLight(0x4488ff, 0x000033, 0.3));
+
+  const fl = new THREE.Mesh(new THREE.PlaneGeometry(700,700), new THREE.MeshStandardMaterial({color:0x0a0a18,roughness:0.8}));
+  fl.rotation.x = -PI/2; fl.position.y = -85; fl.receiveShadow = true; S.add(fl);
+  S.add(new THREE.GridHelper(500,30,0x112244,0x0a1530).position.set(0,-84,0));
+
+  function m(c,r=0.5,mm=0.2){return new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:mm})}
+  const G = 0xd4a840, SG = 0x888899;
+
+  const B = new THREE.Group();
+  const sh = new THREE.Shape(); sh.moveTo(-130,-75); sh.lineTo(130,-75); sh.lineTo(130,75); sh.lineTo(100,75); sh.lineTo(100,82); sh.lineTo(-130,82);
+  const pcb = new THREE.Mesh(new THREE.ExtrudeGeometry(sh,{depth:4,bevelEnabled:true,bevelThickness:0.5,bevelSize:0.3,bevelSegments:4}), m(0x0d1525,0.7,0.1));
+  pcb.position.y = -4; pcb.castShadow = true; pcb.receiveShadow = true; pcb.userData.c='pcb'; B.add(pcb);
+
+  const F = new THREE.Group();
+  for(let x=-22;x<=22;x+=5) for(let y=-22;y<=22;y+=5){const b=new THREE.Mesh(new THREE.SphereGeometry(1.2,8,8),m(G,0.3,0.8));b.position.set(x,y,-3);b.userData.c='bga';F.add(b)}
+  const pk=new THREE.Mesh(new THREE.BoxGeometry(54,54,3.5),m(0x1a2038,0.5,0.3));pk.position.z=-1;pk.castShadow=true;pk.userData.c='fpga';F.add(pk);
+  const tp=new THREE.Mesh(new THREE.BoxGeometry(50,50,0.4),m(0x222a48,0.4,0.2));tp.position.z=0.8;tp.userData.c='fpga';F.add(tp);
+  for(let i=0;i<4;i++){const b=new THREE.Mesh(new THREE.BoxGeometry(4,2,0.2),m(0x334466));b.position.set(-12+i*7,-15,1.2);b.userData.c='fpga';F.add(b)}
+  const dt=new THREE.Mesh(new THREE.SphereGeometry(1,8,8),m(0x445577));dt.position.set(-18,-18,1.2);dt.userData.c='fpga';F.add(dt); B.add(F);
+
+  let r=42;function R(){r=(r*16807)%2147483647;return r/2147483647}
+  for(let x=-110;x<=110;x+=16) for(let y=-65;y<=65;y+=16){
+    if(Math.abs(x)<32&&Math.abs(y)<32||R()>0.5)continue;
+    const v=new THREE.Mesh(new THREE.CylinderGeometry(1,1.4,2,8),m(0x2a3a2a,0.7,0.2));
+    v.position.set(x+(R()-0.5)*4,y+(R()-0.5)*4,-2.5);v.userData.c='vias';B.add(v)}
+  
+  r=10;
+  for(let i=0;i<30;i++){let x1=R()*220-110,y1=R()*130-65,x2=x1+(R()-0.5)*50,y2=y1+(R()-0.5)*20;if(Math.abs(x1)<30&&Math.abs(y1)<30||Math.abs(x2)<30&&Math.abs(y2)<30)continue;const p=[new THREE.Vector3(x1,-1.5,y1),new THREE.Vector3(x1+(x2-x1)*0.3,-1.5,y1),new THREE.Vector3(x1+(x2-x1)*0.7,-1.5,y2),new THREE.Vector3(x2,-1.5,y2)];const t=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(p),4,0.12,3),new THREE.MeshBasicMaterial({color:0x1a2a1a,transparent:true,opacity:0.3}));t.userData.c='traces';B.add(t)}
+
+  for(let i=0;i<8;i++){const h=new THREE.Mesh(new THREE.BoxGeometry(6,3,2.5),m(0x1a1a2a));h.position.set(-90+i*22,-68,-1.5);h.userData.c='leds';B.add(h);const l=new THREE.Mesh(new THREE.SphereGeometry(2,12,12),m(0x111122));l.position.set(-90+i*22,-68,0.5);l.userData.c='leds';l.userData.i=i;l.userData.p=i*0.5;B.add(l)}
+
+  const us=new THREE.Mesh(new THREE.BoxGeometry(22,10,5),m(0x151d2e,0.5,0.3));us.position.set(-85,68,-1.5);us.userData.c='usb';B.add(us);
+  const shm=new THREE.Mesh(new THREE.BoxGeometry(18,8,2),m(0x444455,0.3,0.8));shm.position.set(-85,68,1.5);shm.userData.c='usb';B.add(shm);
+  for(let i=-2;i<=2;i++){const p=new THREE.Mesh(new THREE.BoxGeometry(1,1.5,1.5),m(G,0.2,0.9));p.position.set(-85+i*3,68,3);p.userData.c='usb';B.add(p)}
+  
+  const ua=new THREE.Mesh(new THREE.BoxGeometry(16,12,2),m(0x181e2e));ua.position.set(-105,50,-1.5);ua.userData.c='uart';B.add(ua);
+  for(let i=-6;i<=6;i+=2){const p=new THREE.Mesh(new THREE.BoxGeometry(0.8,2,1.5),m(SG,0.3,0.7));p.position.set(-105+i,44,-1.5);p.userData.c='uart';B.add(p)}
+  for(let i=-6;i<=6;i+=2){const p=new THREE.Mesh(new THREE.BoxGeometry(0.8,2,1.5),m(SG,0.3,0.7));p.position.set(-105+i,56,-1.5);p.userData.c='uart';B.add(p)}
+  
+  const rl=new THREE.Mesh(new THREE.BoxGeometry(22,16,3),m(0x222233));rl.position.set(85,-50,-1);rl.userData.c='power';B.add(rl);
+  for(let i=-7;i<=7;i+=3){const f=new THREE.Mesh(new THREE.BoxGeometry(16,1.5,3),m(0x333344,0.6,0.5));f.position.set(85,-50+i,1);f.userData.c='heatsink';B.add(f)}
+  [55,75].forEach(x=>{const c=new THREE.Mesh(new THREE.CylinderGeometry(5,5,4,16),m(0x1a1a2e,0.6));c.position.set(x,-28,-1.5);c.userData.c='caps';B.add(c)})
+  
+  for(let i=-12;i<=12;i++){if(Math.abs(i)<3)continue;const p=new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.6,4,6),m(SG,0.3,0.7));p.position.set(i*5+3,65,-3.5);p.userData.c='pins';B.add(p);const p2=new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.6,4,6),m(SG,0.3,0.7));p2.position.set(i*5+3,-65,-3.5);p2.userData.c='pins';B.add(p2)}
+  for(let i=-12;i<12;i++){const e=new THREE.Mesh(new THREE.BoxGeometry(3.5,1.5,3),m(G,0.2,0.9));e.position.set(i*8+4,80.5,-2);e.userData.c='pcb';B.add(e)}
+  S.add(B);
+
+  // UI
+  const panel = document.getElementById('panel');
+  let sel = null;
+  ITEMS.forEach(item => {
+    const d = document.createElement('div'); d.className = 'c'; d.dataset.id = item.id;
+    d.innerHTML = `<div class="dot" style="background:${item.dot}"></div><div><div class="cn">${item.name}</div><div class="cd">${item.desc}</div></div>`;
+    d.onclick = () => {
+      sel = item.id;
+      document.querySelectorAll('.c').forEach(el => el.classList.toggle('s', el.dataset.id === item.id));
+      const clear = (obj) => { if(obj.isMesh){obj.material.emissive.setHex(0);obj.material.emissiveIntensity=0} if(obj.children) obj.children.forEach(c => clear(c)); };
+      B.children.forEach(c => clear(c));
+      const hilite = (obj) => { if(obj.isMesh && obj.userData.c === item.id){obj.material.emissive.setHex(item.hl);obj.material.emissiveIntensity=0.6} if(obj.children) obj.children.forEach(c => hilite(c)); };
+      B.children.forEach(c => hilite(c));
+    };
+    panel.appendChild(d);
+  });
+  // Select first
+  document.querySelector('.c').click();
+
+  // Animate
+  function anim() {
+    requestAnimationFrame(anim);
+    const t = Date.now() * 0.001;
+    B.children.forEach(c => { if(c.children) c.children.forEach(l => { if(l.userData.i!==undefined){const on=Math.sin(t*2+l.userData.p)>0;if(on){l.material.color.setHex(0x00dd88);l.material.emissive.setHex(0x00dd88);l.material.emissiveIntensity=1.5}else{l.material.color.setHex(0x111122);l.material.emissive.setHex(0);l.material.emissiveIntensity=0}}}); });
+    O.update(); R.render(S, C);
+  }
+  anim();
+  onresize = () => { C.aspect=innerWidth/innerHeight; C.updateProjectionMatrix(); R.setSize(innerWidth,innerHeight); };
+}
+</script>
+</body>
+</html>

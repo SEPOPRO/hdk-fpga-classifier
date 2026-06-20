@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>HDK FPGA Prototype - Interactive 3D</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #080810; overflow: hidden; display: flex; }
+    #canvas-container { flex: 1; height: 100vh; position: relative; }
+    canvas { display: block; }
+    
+    #sidebar {
+      width: 260px; min-width: 260px; height: 100vh;
+      background: rgba(10, 12, 24, 0.95);
+      border-right: 1px solid rgba(255,255,255,0.06);
+      padding: 20px 0;
+      overflow-y: auto;
+      z-index: 10;
+    }
+    #sidebar h2 {
+      color: rgba(255,255,255,0.3); font-size: 10px; letter-spacing: 3px;
+      text-transform: uppercase; padding: 0 20px; margin-bottom: 12px;
+    }
+    .comp-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 20px; cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: all 0.2s ease;
+    }
+    .comp-item:hover {
+      background: rgba(0,180,255,0.05);
+      border-left-color: rgba(0,180,255,0.3);
+    }
+    .comp-item.active {
+      background: rgba(0,180,255,0.1);
+      border-left-color: #00b4ff;
+    }
+    .comp-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .comp-info { flex: 1; }
+    .comp-name { color: rgba(255,255,255,0.8); font-size: 13px; font-weight: 500; }
+    .comp-desc { color: rgba(255,255,255,0.3); font-size: 10px; margin-top: 1px; }
+    .comp-value { color: #00b4ff; font-size: 11px; font-family: monospace; }
+    
+    #overlay-title {
+      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+      color: #8899bb; font-size: 18px; letter-spacing: 4px;
+      pointer-events: none; text-align: center; z-index: 5;
+    }
+    #overlay-title span { color: #00b4ff; font-weight: 600; }
+    #overlay-stats {
+      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+      color: rgba(255,255,255,0.4); font-size: 11px;
+      background: rgba(0,0,0,0.5); padding: 8px 20px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.05); pointer-events: none; z-index: 5;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+<div id="sidebar">
+  <h2>Componentes</h2>
+  <div id="comp-list"></div>
+</div>
+<div id="canvas-container">
+  <div id="overlay-title">HDK <span>FPGA</span> PROTOTYPE</div>
+  <div id="overlay-stats">HDK v4.8 — Zero MatMul · 100% LUT Logic · 71.09% Accuracy</div>
+</div>
+
+<script>
+// === COMPONENT DATA ===
+const COMPONENTS = [
+  { id: 'fpga', name: 'FPGA Artix-7', desc: 'XC7A200T · LUTs: ~70K · 0 DSPs', color: '#2a3560', highlight: 0x4488ff },
+  { id: 'bga', name: 'BGA Ball Grid', desc: 'Interconexión FPGA-PCB · ~169 balls', color: '#ccb060', highlight: 0xffdd88 },
+  { id: 'pcb', name: 'PCB Board', desc: '8 capas · FR-4 · 260×165 mm', color: '#0d1525', highlight: 0x224488 },
+  { id: 'leds', name: 'Status LEDs', desc: '8 indicadores · Verde/Rojo/Amarillo', color: '#00dd88', highlight: 0x44ffaa },
+  { id: 'usb', name: 'USB Connector', desc: 'USB 2.0 · Interface host-FPGA', color: '#1a2a44', highlight: 0x4488ff },
+  { id: 'uart', name: 'UART Bridge', desc: 'USB-UART · 10 Mbaud · 8N1', color: '#1a1e2e', highlight: 0x44aaff },
+  { id: 'power', name: 'Power Regulator', desc: '1.0V · 1.8V · 3.3V LDOs', color: '#222233', highlight: 0xff8844 },
+  { id: 'caps', name: 'Filter Caps', desc: '22µF · 10µF · Desacoplo', color: '#1a1a2e', highlight: 0x88aaff },
+  { id: 'pins', name: 'Header Pins', desc: 'GPIO · 2×20 pins · 2.54mm', color: '#888899', highlight: 0xaabbcc },
+  { id: 'traces', name: 'PCB Traces', desc: 'Señales diferenciales · 50Ω', color: '#1a2a1a', highlight: 0x44ff88 },
+  { id: 'vias', name: 'Vias', desc: 'Through-hole · 0.3mm drill', color: '#2a3a2a', highlight: 0x66aa66 },
+  { id: 'heatsink', name: 'Heatsink', desc: 'Aluminio · Disipación pasiva', color: '#333344', highlight: 0x888899 },
+];
+
+// === THREE.JS SCENE ===
+const container = document.getElementById('canvas-container');
+const W = container.clientWidth;
+const H = container.clientHeight;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x080810);
+
+const camera = new THREE.PerspectiveCamera(30, W / H, 1, 2000);
+camera.position.set(400, 100, 400);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(W, H);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+container.prepend(renderer.domElement);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.6;
+controls.minDistance = 200;
+controls.maxDistance = 700;
+controls.target.set(0, 0, 0);
+
+// === LIGHTS ===
+scene.add(new THREE.AmbientLight(0x223355, 0.3));
+const key = new THREE.DirectionalLight(0xffeedd, 1.0);
+key.position.set(300, 500, 300);
+key.castShadow = true;
+scene.add(key);
+const fill = new THREE.DirectionalLight(0x4488ff, 0.4);
+fill.position.set(-300, 200, -300);
+scene.add(fill);
+const rim = new THREE.DirectionalLight(0x00ddff, 0.3);
+rim.position.set(0, -300, 300);
+scene.add(rim);
+scene.add(new THREE.HemisphereLight(0x4488ff, 0x000033, 0.3));
+
+// === FLOOR ===
+const floor = new THREE.Mesh(
+  new THREE.PlaneGeometry(700, 700),
+  new THREE.MeshStandardMaterial({ color: 0x0a0a18, roughness: 0.8 })
+);
+floor.rotation.x = -Math.PI / 2;
+floor.position.y = -85;
+floor.receiveShadow = true;
+scene.add(floor);
+const grid = new THREE.GridHelper(500, 30, 0x112244, 0x0a1530);
+grid.position.y = -84;
+scene.add(grid);
+
+// === Mesh registry for highlights ===
+const highlightMeshes = {};
+
+function registerMeshes(group, compId) {
+  group.children.forEach(child => {
+    if (child.isMesh) {
+      child.userData.compId = compId;
+      if (!highlightMeshes[compId]) highlightMeshes[compId] = [];
+      highlightMeshes[compId].push(child);
+    }
+    if (child.children) registerMeshes(child, compId);
+  });
+}
+
+// === BUILD BOARD ===
+const boardGroup = new THREE.Group();
+
+// Material helpers
+function mat(c, r = 0.5, m = 0.2, e = 0x000000, ei = 0) {
+  return new THREE.MeshStandardMaterial({ color: c, roughness: r, metalness: m, emissive: e, emissiveIntensity: ei });
+}
+
+// PCB
+const pcbShape = new THREE.Shape();
+pcbShape.moveTo(-130, -75); pcbShape.lineTo(130, -75); pcbShape.lineTo(130, 75);
+pcbShape.lineTo(100, 75); pcbShape.lineTo(100, 82); pcbShape.lineTo(-130, 82); pcbShape.closePath();
+const pcb = new THREE.Mesh(new THREE.ExtrudeGeometry(pcbShape, { depth: 4, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.3, bevelSegments: 4 }), mat(0x0d1525, 0.7, 0.1));
+pcb.position.set(0, 0, -4); pcb.castShadow = true; pcb.receiveShadow = true;
+pcb.userData.compId = 'pcb';
+boardGroup.add(pcb);
+
+// FPGA Package
+const fpgaGroup = new THREE.Group();
+for (let x = -22; x <= 22; x += 5)
+  for (let y = -22; y <= 22; y += 5) {
+    const b = new THREE.Mesh(new THREE.SphereGeometry(1.2, 8, 8), mat(0xccb060, 0.3, 0.8));
+    b.position.set(x, y, -3); b.userData.compId = 'bga'; fpgaGroup.add(b);
+  }
+const pkg = new THREE.Mesh(new THREE.BoxGeometry(54, 54, 3.5), mat(0x1a2038, 0.5, 0.3));
+pkg.position.set(0, 0, -1); pkg.castShadow = true; pkg.userData.compId = 'fpga'; fpgaGroup.add(pkg);
+const top = new THREE.Mesh(new THREE.BoxGeometry(50, 50, 0.4), mat(0x222a48, 0.4, 0.2));
+top.position.set(0, 0, 0.8); top.userData.compId = 'fpga'; fpgaGroup.add(top);
+// text bars
+for (let i = 0; i < 4; i++) {
+  const b = new THREE.Mesh(new THREE.BoxGeometry(4, 2, 0.2), mat(0x334466));
+  b.position.set(-12 + i * 7, -15, 1.2); b.userData.compId = 'fpga'; fpgaGroup.add(b);
+}
+const dot = new THREE.Mesh(new THREE.SphereGeometry(1, 8, 8), mat(0x445577));
+dot.position.set(-18, -18, 1.2); dot.userData.compId = 'fpga'; fpgaGroup.add(dot);
+boardGroup.add(fpgaGroup);
+
+// Vias
+let rng = 42;
+function pr() { rng = (rng * 16807) % 2147483647; return rng / 2147483647; }
+for (let x = -110; x <= 110; x += 16) {
+  for (let y = -65; y <= 65; y += 16) {
+    if (Math.abs(x) < 32 && Math.abs(y) < 32) continue;
+    if (pr() > 0.5) continue;
+    const v = new THREE.Mesh(new THREE.CylinderGeometry(1, 1.4, 2, 8), mat(0x2a3a2a, 0.7, 0.2));
+    v.position.set(x + (pr()-0.5)*4, y + (pr()-0.5)*4, -2.5);
+    v.userData.compId = 'vias'; boardGroup.add(v);
+  }
+}
+
+// Traces
+rng = 10;
+for (let i = 0; i < 40; i++) {
+  let x1 = pr() * 220 - 110, y1 = pr() * 130 - 65,
+      x2 = x1 + (pr()-0.5) * 50, y2 = y1 + (pr()-0.5) * 20;
+  if (Math.abs(x1) < 30 && Math.abs(y1) < 30) continue;
+  if (Math.abs(x2) < 30 && Math.abs(y2) < 30) continue;
+  const pts = [
+    new THREE.Vector3(x1, -1.5, y1),
+    new THREE.Vector3(x1 + (x2-x1)*0.3, -1.5, y1),
+    new THREE.Vector3(x1 + (x2-x1)*0.7, -1.5, y2),
+    new THREE.Vector3(x2, -1.5, y2)
+  ];
+  const tube = new THREE.Mesh(
+    new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 4, 0.12, 3, false),
+    new THREE.MeshBasicMaterial({ color: 0x1a2a1a, transparent: true, opacity: 0.35 })
+  );
+  tube.userData.compId = 'traces'; boardGroup.add(tube);
+}
+
+// LEDs
+for (let i = 0; i < 8; i++) {
+  const h = new THREE.Mesh(new THREE.BoxGeometry(6, 3, 2.5), mat(0x1a1a2a));
+  h.position.set(-90 + i * 22, -68, -1.5); h.userData.compId = 'leds'; boardGroup.add(h);
+  const lens = new THREE.Mesh(new THREE.SphereGeometry(2, 12, 12), mat(0x111122, 0.5, 0.1, 0x00dd88, 0));
+  lens.position.set(-90 + i * 22, -68, 0.5);
+  lens.userData.compId = 'leds'; lens.userData.idx = i; lens.userData.phase = i * 0.5;
+  boardGroup.add(lens);
+}
+
+// USB
+const usb = new THREE.Mesh(new THREE.BoxGeometry(22, 10, 5), mat(0x151d2e, 0.5, 0.3));
+usb.position.set(-85, 68, -1.5); usb.userData.compId = 'usb'; boardGroup.add(usb);
+const shield = new THREE.Mesh(new THREE.BoxGeometry(18, 8, 2), mat(0x444455, 0.3, 0.8));
+shield.position.set(-85, 68, 1.5); shield.userData.compId = 'usb'; boardGroup.add(shield);
+for (let i = -2; i <= 2; i++) {
+  const p = new THREE.Mesh(new THREE.BoxGeometry(1, 1.5, 1.5), mat(0xd4a840, 0.2, 0.9));
+  p.position.set(-85 + i * 3, 68, 3); p.userData.compId = 'usb'; boardGroup.add(p);
+}
+
+// UART
+const uart = new THREE.Mesh(new THREE.BoxGeometry(16, 12, 2), mat(0x181e2e));
+uart.position.set(-105, 50, -1.5); uart.userData.compId = 'uart'; boardGroup.add(uart);
+for (let i = -6; i <= 6; i += 2) {
+  const p = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2, 1.5), mat(0x888899, 0.3, 0.7));
+  p.position.set(-105 + i, 44, -1.5); p.userData.compId = 'uart'; boardGroup.add(p);
+  const p2 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2, 1.5), mat(0x888899, 0.3, 0.7));
+  p2.position.set(-105 + i, 56, -1.5); p2.userData.compId = 'uart'; boardGroup.add(p2);
+}
+
+// Power
+const reg = new THREE.Mesh(new THREE.BoxGeometry(22, 16, 3), mat(0x222233));
+reg.position.set(85, -50, -1); reg.userData.compId = 'power'; boardGroup.add(reg);
+for (let i = -7; i <= 7; i += 3) {
+  const f = new THREE.Mesh(new THREE.BoxGeometry(16, 1.5, 3), mat(0x333344, 0.6, 0.5));
+  f.position.set(85, -50 + i, 1); f.userData.compId = 'heatsink'; boardGroup.add(f);
+}
+const capMat = mat(0x1a1a2e, 0.6);
+for (let x of [55, 75]) {
+  const c = new THREE.Mesh(new THREE.CylinderGeometry(5, 5, 4, 16), capMat);
+  c.position.set(x, -28, -1.5); c.userData.compId = 'caps'; boardGroup.add(c);
+}
+
+// Header pins
+for (let i = -12; i <= 12; i++) {
+  if (Math.abs(i) < 3) continue;
+  const p = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 4, 6), mat(0x888899, 0.3, 0.7));
+  p.position.set(i * 5 + 3, 65, -3.5); p.userData.compId = 'pins'; boardGroup.add(p);
+  const p2 = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 4, 6), mat(0x888899, 0.3, 0.7));
+  p2.position.set(i * 5 + 3, -65, -3.5); p2.userData.compId = 'pins'; boardGroup.add(p2);
+}
+
+// Gold edge
+for (let i = -12; i < 12; i++) {
+  const e = new THREE.Mesh(new THREE.BoxGeometry(3.5, 1.5, 3), mat(0xd4a840, 0.2, 0.9));
+  e.position.set(i * 8 + 4, 80.5, -2); e.userData.compId = 'pcb'; boardGroup.add(e);
+}
+
+scene.add(boardGroup);
+
+// === BUILD UI LIST ===
+const compList = document.getElementById('comp-list');
+let selectedComp = null;
+
+COMPONENTS.forEach(comp => {
+  const item = document.createElement('div');
+  item.className = 'comp-item';
+  item.dataset.id = comp.id;
+  
+  item.innerHTML = `
+    <div class="comp-dot" style="background:${comp.color}"></div>
+    <div class="comp-info">
+      <div class="comp-name">${comp.name}</div>
+      <div class="comp-desc">${comp.desc}</div>
+    </div>
+  `;
+  
+  item.addEventListener('click', () => {
+    selectComponent(comp.id);
+  });
+  
+  compList.appendChild(item);
+});
+
+function selectComponent(id) {
+  selectedComp = id;
+  
+  // Update UI
+  document.querySelectorAll('.comp-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.id === id);
+  });
+  
+  // Reset all highlights
+  boardGroup.children.forEach(child => {
+    if (child.isMesh) {
+      child.material.emissive.setHex(0x000000);
+      child.material.emissiveIntensity = 0;
+    }
+    if (child.children) resetChildHighlights(child);
+  });
+  
+  // Find the component's highlight color
+  const comp = COMPONENTS.find(c => c.id === id);
+  if (!comp) return;
+  
+  // Highlight matching meshes
+  highlightComponent(id, comp.highlight);
+}
+
+function resetChildHighlights(group) {
+  group.children.forEach(child => {
+    if (child.isMesh) {
+      child.material.emissive.setHex(0x000000);
+      child.material.emissiveIntensity = 0;
+    }
+    if (child.children) resetChildHighlights(child);
+  });
+}
+
+function highlightComponent(id, color) {
+  // Search through all meshes
+  boardGroup.children.forEach(child => {
+    highlightMesh(child, id, color);
+  });
+}
+
+function highlightMesh(obj, id, color) {
+  if (obj.isMesh && obj.userData.compId === id) {
+    obj.material.emissive.setHex(color);
+    obj.material.emissiveIntensity = 0.5;
+  }
+  if (obj.children) {
+    obj.children.forEach(c => highlightMesh(c, id, color));
+  }
+}
+
+// Select first by default
+selectComponent('fpga');
+
+// === ANIMATION LEDS ===
+function animateLEDs(t) {
+  boardGroup.children.forEach(child => {
+    if (child.children) {
+      child.children.forEach(c => {
+        if (c.userData && c.userData.idx !== undefined) {
+          const idx = c.userData.idx;
+          const phase = c.userData.phase;
+          const on = Math.sin(t * 2 + phase) > 0;
+          if (on) {
+            c.material.color.setHex(0x00dd88);
+            c.material.emissive.setHex(0x00dd88);
+            c.material.emissiveIntensity = 1.2 + Math.sin(t * 4 + phase) * 0.3;
+          } else {
+            c.material.color.setHex(0x111122);
+            c.material.emissive.setHex(0x000000);
+            c.material.emissiveIntensity = 0;
+          }
+        }
+      });
+    }
+  });
+}
+
+// === ANIMATION LOOP ===
+function animate() {
+  requestAnimationFrame(animate);
+  animateLEDs(Date.now() * 0.001);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+// === RESIZE ===
+window.addEventListener('resize', () => {
+  const w = container.clientWidth;
+  const h = container.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+});
+</script>
+</body>
+</html>
