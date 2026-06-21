@@ -14,7 +14,14 @@ read_vhdl -vhdl2008 ../../rpk_v5/audio/mfcc_lut/mfcc_dct_pkg.vhd
 read_vhdl -vhdl2008 ../../rpk_v5/audio/mfcc_lut/audio_classifier.vhd
 set_property top rpk_v5_top [current_fileset]
 launch_runs synth_1 -jobs 4
-wait_on_run synth_1
+# Poll instead of wait_on_run (avoids hang bug)
+set timeout 1800
+set waited 0
+while {[get_property PROGRESS [get_runs synth_1]] != "100%"} {
+    after 1000
+    incr waited
+    if {$waited > $timeout} { error "TIMEOUT" }
+}
 open_run synth_1 -name synth_1
 report_utilization -file rpk_v5_utilization.rpt
 report_timing -max_paths 5 -file rpk_v5_timing.rpt
