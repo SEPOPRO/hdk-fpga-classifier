@@ -7,24 +7,20 @@ read_vhdl -vhdl2008 ../../vhdl/argmin.vhd
 read_vhdl -vhdl2008 ../../vhdl/uart_rx.vhd
 read_vhdl -vhdl2008 ../../vhdl/uart_tx.vhd
 read_vhdl -vhdl2008 ../../rpk_v5/fusion/rpk_v5_top.vhd
+read_vhdl -vhdl2008 ../../rpk_v5/fusion/bnn_vision.vhd
+read_vhdl -vhdl2008 ../../rpk_v5/vision/bnn_ternary/bnn_weights_compact.vhd
 read_vhdl -vhdl2008 ../../rpk_v5/fusion/fusion_multimodal.vhd
 read_vhdl -vhdl2008 ../../rpk_v5/vision/gabor_lut/gabor_lut.vhd
 read_vhdl -vhdl2008 ../../rpk_v5/audio/mfcc_lut/mfcc_lut_pkg.vhd
 read_vhdl -vhdl2008 ../../rpk_v5/audio/mfcc_lut/mfcc_dct_pkg.vhd
 read_vhdl -vhdl2008 ../../rpk_v5/audio/mfcc_lut/audio_classifier.vhd
 set_property top rpk_v5_top [current_fileset]
-launch_runs synth_1 -jobs 4
-# Poll instead of wait_on_run (avoids hang bug)
-set timeout 1800
-set waited 0
-while {[get_property PROGRESS [get_runs synth_1]] != "100%"} {
-    after 1000
-    incr waited
-    if {$waited > $timeout} { error "TIMEOUT" }
-}
-open_run synth_1 -name synth_1
-report_utilization -file rpk_v5_utilization.rpt
-report_timing -max_paths 5 -file rpk_v5_timing.rpt
-report_power -file rpk_v5_power.rpt
+synth_design -top rpk_v5_top -part xc7a200tfbg676-2
+write_checkpoint -force C:/hdk/rpk_v5/fusion/post_synth.dcp
+close_project
+open_checkpoint C:/hdk/rpk_v5/fusion/post_synth.dcp
+report_utilization -file C:/hdk/rpk_v5/fusion/rpk_v5_utilization.rpt
+report_timing -max_paths 5 -file C:/hdk/rpk_v5/fusion/rpk_v5_timing.rpt
+report_power -file C:/hdk/rpk_v5/fusion/rpk_v5_power.rpt
 puts "=== DONE ==="
 exit

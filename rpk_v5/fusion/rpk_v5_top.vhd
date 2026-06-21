@@ -51,9 +51,18 @@ architecture Structural of rpk_v5_top is
 
     -- Control → BNN visión
     signal vis_start    : STD_LOGIC;
-    signal vis_done     : STD_LOGIC;
-    signal vis_class    : STD_LOGIC_VECTOR(3 downto 0);  -- 10 clases
+    signal vis_class    : STD_LOGIC_VECTOR(3 downto 0);
     signal vis_conf     : STD_LOGIC_VECTOR(15 downto 0);
+    signal vis_done     : STD_LOGIC;
+    
+    -- Audio signals
+    signal aud_start    : STD_LOGIC;
+    signal aud_class    : STD_LOGIC_VECTOR(3 downto 0);
+    signal aud_conf     : STD_LOGIC_VECTOR(15 downto 0);
+    signal aud_done     : STD_LOGIC;
+    
+    -- RPK features bus (compartido texto/visión)
+    signal rp_features  : STD_LOGIC_VECTOR(RP_DIM-1 downto 0);
 
     -- Fusión
     signal result_class : STD_LOGIC_VECTOR(4 downto 0);
@@ -102,16 +111,41 @@ begin
         );
 
     ---------------------------------------------------------------------------
-    -- BNN Visión (nueva)
+    -- BNN Visión (reactivada con ROM compacta)
     ---------------------------------------------------------------------------
-    -- Pipeline: Gabor LUT → RPK proyección → BNN ternaria → clase
-    -- Implementado como máquina de estados secuencial
--- BNN_VISION : entity work.bnn_vision
---   (disable BNN weights while compact ROM is being debugged)
-    -- Signal assignments when BNN disabled (vision defaults to class 0)
-    vis_class <= (others => '0');
-    vis_conf <= (others => '0');
-    vis_done <= '1';
+    BNN_VISION : entity work.bnn_vision
+        generic map (
+            RP_DIM => RP_DIM,
+            N_CLASSES => N_CLASSES_VIS
+        )
+        port map (
+            clk => clk,
+            rst_n => rst_n,
+            start => vis_start,
+            rp_features => rp_features,
+            class_out => vis_class,
+            confidence => vis_conf,
+            done => vis_done
+        );
+    
+    ---------------------------------------------------------------------------
+    -- Audio Classifier
+    ---------------------------------------------------------------------------
+    AUDIO : entity work.audio_classifier
+        generic map (
+            N_CLASSES => 10,
+            N_MFCC => 13
+        )
+        port map (
+            clk => clk,
+            rst_n => rst_n,
+            start => aud_start,
+            pcm_data => rx_byte,
+            pcm_valid => rx_valid,
+            class_out => aud_class,
+            confidence => aud_conf,
+            done => aud_done
+        );
 
     ---------------------------------------------------------------------------
     -- Controlador principal
