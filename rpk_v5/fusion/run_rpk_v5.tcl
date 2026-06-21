@@ -12,7 +12,7 @@ read_vhdl -vhdl2008 ../../rpk_v5/fusion/rpk_v5_top.vhd
 read_vhdl -vhdl2008 ../../rpk_v5/fusion/bnn_vision.vhd
 read_vhdl -vhdl2008 ../../rpk_v5/fusion/fusion_multimodal.vhd
 read_vhdl -vhdl2008 ../../rpk_v5/vision/gabor_lut/gabor_lut.vhd
-read_vhdl -vhdl2008 ../../rpk_v5/vision/bnn_ternary/rpk_bnn_pkg.vhd
+read_vhdl -vhdl2008 ../../rpk_v5/vision/bnn_ternary/bnn_weights_compact.vhd
 read_vhdl -vhdl2008 ../../rpk_v5/audio/mfcc_lut/mfcc_lut_pkg.vhd
 read_vhdl -vhdl2008 ../../rpk_v5/audio/mfcc_lut/mfcc_dct_pkg.vhd
 
