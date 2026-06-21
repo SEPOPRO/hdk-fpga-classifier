@@ -19,3 +19,6 @@ Thumbs.db
 *.zip
 *.zip
 tools/
+*.pt
+*.tar.gz
+cifar-10-batches-py/
