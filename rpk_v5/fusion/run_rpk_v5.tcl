@@ -21,6 +21,7 @@ add_files -norecurse {
     ../../rpk_v5/audio/mfcc_lut/mfcc_lut_pkg.vhd
     ../../rpk_v5/audio/mfcc_lut/mfcc_dct_pkg.vhd
 }
+set_property VHDL_2008 TRUE [current_fileset]
 set_property top rpk_v5_top [current_fileset]
 
 synth_design -top rpk_v5_top -part xc7a200tfbg676-2 -directive AreaOptimized_high
