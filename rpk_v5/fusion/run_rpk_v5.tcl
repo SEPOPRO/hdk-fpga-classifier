@@ -10,7 +10,14 @@ read_vhdl -vhdl2008 ../../rpk_v5/vision/gabor_lut/gabor_lut.vhd
 read_vhdl -vhdl2008 ../../rpk_v5/audio/mfcc_lut/mfcc_lut_pkg.vhd
 read_vhdl -vhdl2008 ../../rpk_v5/audio/mfcc_lut/mfcc_dct_pkg.vhd
 set_property top rpk_v5_top [current_fileset]
-synth_design -top rpk_v5_top -part xc7a200tfbg676-2
-# Report to stdout directly
+
+# Use launch_runs (project mode) instead of direct synth_design
+launch_runs synth_1 -jobs 4
+wait_on_run synth_1
+open_run synth_1 -name synth_1
+
+# Now utilization should work
+puts "=== UTILIZATION ==="
 report_utilization
+puts "=== DONE ==="
 exit
