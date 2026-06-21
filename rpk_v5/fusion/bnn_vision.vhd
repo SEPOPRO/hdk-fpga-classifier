@@ -6,7 +6,7 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
-use work.rpk_bnn_pkg.all;  -- pesos ternarios exportados
+use work.bnn_weights_pkg.all;  -- pesos ternarios exportados
 
 entity bnn_vision is
     Generic (

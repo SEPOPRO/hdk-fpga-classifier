@@ -15,10 +15,9 @@ set_property top rpk_v5_top [current_fileset]
 synth_design -top rpk_v5_top -part xc7a200tfbg676-2
 
 puts "=== UTILIZATION ==="
-report_utilization -file rpk_v5_utilization.rpt
-puts "=== TIMING ==="
+report_utilization
+puts "=== END UTILIZATION ==="
 report_timing -max_paths 5 -file rpk_v5_timing.rpt
-puts "=== POWER ==="
 report_power -file rpk_v5_power.rpt
 puts "=== DONE ==="
 exit
