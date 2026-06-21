@@ -106,21 +106,12 @@ begin
     ---------------------------------------------------------------------------
     -- Pipeline: Gabor LUT → RPK proyección → BNN ternaria → clase
     -- Implementado como máquina de estados secuencial
-    BNN_VISION : entity work.bnn_vision
-        generic map (
-            RP_DIM => RP_DIM,
-            N_CLASSES => N_CLASSES_VIS
-        )
-        port map (
-            clk => clk,
-            rst_n => rst_n,
-            start => vis_start,
-            pixel_data => rx_byte,       -- pixels via UART
-            pixel_valid => rx_valid,
-            class_out => vis_class,
-            confidence => vis_conf,
-            done => vis_done
-        );
+-- BNN_VISION : entity work.bnn_vision
+--   (disable BNN weights while compact ROM is being debugged)
+    -- Signal assignments when BNN disabled (vision defaults to class 0)
+    vis_class <= (others => '0');
+    vis_conf <= (others => '0');
+    vis_done <= '1';
 
     ---------------------------------------------------------------------------
     -- Controlador principal
