@@ -1,30 +1,24 @@
-# RPK v5 Full Synthesis
+# RPK v5 Full Synthesis - usa read_vhdl -vhdl2008
 create_project rpk_v5 ./vivado_rpk -part xc7a200tfbg676-2 -force
-set_property target_language VHDL [current_project]
-set_property default_lib work [current_project]
 
-add_files -norecurse {
-    ../../vhdl/hd_classifier.vhd
-    ../../vhdl/popcount_tree.vhd
-    ../../vhdl/argmin.vhd
-    ../../vhdl/uart_rx.vhd
-    ../../vhdl/uart_tx.vhd
-}
-add_files -norecurse {
-    ../../rpk_v5/fusion/rpk_v5_top.vhd
-    ../../rpk_v5/fusion/bnn_vision.vhd
-    ../../rpk_v5/fusion/fusion_multimodal.vhd
-    ../../rpk_v5/vision/gabor_lut/gabor_lut.vhd
-    ../../rpk_v5/vision/bnn_ternary/rpk_bnn_pkg.vhd
-}
-add_files -norecurse {
-    ../../rpk_v5/audio/mfcc_lut/mfcc_lut_pkg.vhd
-    ../../rpk_v5/audio/mfcc_lut/mfcc_dct_pkg.vhd
-}
-set_property VHDL_2008 TRUE [current_fileset]
+# Leer VHDL con soporte 2008
+read_vhdl -vhdl2008 ../../vhdl/hd_classifier.vhd
+read_vhdl -vhdl2008 ../../vhdl/popcount_tree.vhd
+read_vhdl -vhdl2008 ../../vhdl/argmin.vhd
+read_vhdl -vhdl2008 ../../vhdl/uart_rx.vhd
+read_vhdl -vhdl2008 ../../vhdl/uart_tx.vhd
+
+read_vhdl -vhdl2008 ../../rpk_v5/fusion/rpk_v5_top.vhd
+read_vhdl -vhdl2008 ../../rpk_v5/fusion/bnn_vision.vhd
+read_vhdl -vhdl2008 ../../rpk_v5/fusion/fusion_multimodal.vhd
+read_vhdl -vhdl2008 ../../rpk_v5/vision/gabor_lut/gabor_lut.vhd
+read_vhdl -vhdl2008 ../../rpk_v5/vision/bnn_ternary/rpk_bnn_pkg.vhd
+read_vhdl -vhdl2008 ../../rpk_v5/audio/mfcc_lut/mfcc_lut_pkg.vhd
+read_vhdl -vhdl2008 ../../rpk_v5/audio/mfcc_lut/mfcc_dct_pkg.vhd
+
 set_property top rpk_v5_top [current_fileset]
 
-synth_design -top rpk_v5_top -part xc7a200tfbg676-2 -directive AreaOptimized_high
+synth_design -top rpk_v5_top -part xc7a200tfbg676-2
 
 puts "=== UTILIZATION ==="
 report_utilization -file rpk_v5_utilization.rpt
