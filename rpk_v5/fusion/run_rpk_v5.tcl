@@ -11,6 +11,7 @@ read_vhdl -vhdl2008 ../../rpk_v5/fusion/fusion_multimodal.vhd
 read_vhdl -vhdl2008 ../../rpk_v5/vision/gabor_lut/gabor_lut.vhd
 read_vhdl -vhdl2008 ../../rpk_v5/audio/mfcc_lut/mfcc_lut_pkg.vhd
 read_vhdl -vhdl2008 ../../rpk_v5/audio/mfcc_lut/mfcc_dct_pkg.vhd
+read_vhdl -vhdl2008 ../../rpk_v5/audio/mfcc_lut/audio_classifier.vhd
 set_property top rpk_v5_top [current_fileset]
 launch_runs synth_1 -jobs 4
 wait_on_run synth_1
